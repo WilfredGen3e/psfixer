@@ -38,7 +38,7 @@ Describe 'Invoke-PSFixerAnalysis' {
             )
         }
 
-        $findings = $fakeInventory | Invoke-PSFixerAnalysis
+        $findings = $fakeInventory | Invoke-PSFixerAnalysis -NoReport
     }
 
     It 'detects duplicate modules across locations (ANA-01)' {
@@ -67,6 +67,62 @@ Describe 'Invoke-PSFixerAnalysis' {
 
     It 'does not flag a compliant NuGet provider (ANA-07)' {
         $findings | Where-Object { $_.Category -eq 'PackageProvider' -and $_.Item -eq 'NuGet' } | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Invoke-PSFixerAnalysis HTML report' {
+    BeforeAll {
+        $fakeInventory = [pscustomobject]@{
+            PSTypeName       = 'PSFixer.Inventory'
+            Modules          = @()
+            Repositories     = @([pscustomobject]@{ Name = 'PSGallery'; Uri = 'https://www.powershellgallery.com/api/v2'; Trusted = $true; Priority = $null; Provider = 'PowerShellGet' })
+            PackageProviders = @([pscustomobject]@{ Name = 'NuGet'; Version = [version]'2.8.5.201' })
+            PowerShellVersions = @([pscustomobject]@{ Edition = 'Core'; Version = [version]'7.4.0'; Path = 'pwsh.exe'; IsActiveSession = $true })
+        }
+        $reportDir = Join-Path $HOME 'psfixerreports'
+        $before = if (Test-Path $reportDir) { @(Get-ChildItem $reportDir -Filter 'psfixer-report-*.html').Count } else { 0 }
+    }
+
+    It 'writes an HTML report file by default' {
+        # -NoOpenReport only suppresses the browser launch, not the file write, so this still
+        # exercises the real default report-writing path without popping a window during CI.
+        $fakeInventory | Invoke-PSFixerAnalysis -NoOpenReport *> $null
+        $after = @(Get-ChildItem $reportDir -Filter 'psfixer-report-*.html').Count
+        $after | Should -Be ($before + 1)
+    }
+
+    It 'skips writing a report with -NoReport' {
+        $before2 = @(Get-ChildItem $reportDir -Filter 'psfixer-report-*.html').Count
+        $fakeInventory | Invoke-PSFixerAnalysis -NoReport *> $null
+        $after2 = @(Get-ChildItem $reportDir -Filter 'psfixer-report-*.html').Count
+        $after2 | Should -Be $before2
+    }
+
+    It 'produces a self-contained HTML document with severity tiles' {
+        InModuleScope PSFixer -Parameters @{ fakeInventory = $fakeInventory } {
+            param($fakeInventory)
+            $html = New-PSFixerHtmlReport -Inventory $fakeInventory -Findings @()
+            $html | Should -Match '<!doctype html>'
+            $html | Should -Match 'Geen bevindingen'
+        }
+    }
+
+    It 'opens the report in the default browser by default' {
+        InModuleScope PSFixer -Parameters @{ fakeInventory = $fakeInventory } {
+            param($fakeInventory)
+            Mock Start-Process {}
+            $fakeInventory | Invoke-PSFixerAnalysis *> $null
+            Should -Invoke Start-Process -Times 1
+        }
+    }
+
+    It 'does not open the report with -NoOpenReport' {
+        InModuleScope PSFixer -Parameters @{ fakeInventory = $fakeInventory } {
+            param($fakeInventory)
+            Mock Start-Process {}
+            $fakeInventory | Invoke-PSFixerAnalysis -NoOpenReport *> $null
+            Should -Invoke Start-Process -Times 0
+        }
     }
 }
 

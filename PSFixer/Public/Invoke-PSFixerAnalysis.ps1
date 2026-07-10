@@ -15,6 +15,12 @@ function Invoke-PSFixerAnalysis {
     .PARAMETER Online
         Also check the gallery for newer versions of installed modules (ANA-03).
         Requires internet connectivity.
+    .PARAMETER NoReport
+        Skip writing the HTML report to ~\psfixerreports (INV-08). Findings are
+        still returned to the pipeline as usual.
+    .PARAMETER NoOpenReport
+        Write the HTML report as usual but don't open it in the default browser.
+        Has no effect when -NoReport is also specified.
     .EXAMPLE
         Get-PSFixerInventory | Invoke-PSFixerAnalysis
     #>
@@ -24,7 +30,11 @@ function Invoke-PSFixerAnalysis {
         [Parameter(ValueFromPipeline)]
         [pscustomobject]$Inventory,
 
-        [switch]$Online
+        [switch]$Online,
+
+        [switch]$NoReport,
+
+        [switch]$NoOpenReport
     )
 
     process {
@@ -87,7 +97,7 @@ function Invoke-PSFixerAnalysis {
         }
 
         # ANA-04: command conflicts between simultaneously-loadable legacy/modern modules
-        $legacyPresent = $moduleGroups.Name | Where-Object { $legacyMap.ContainsKey($_) }
+        $legacyPresent = $moduleGroups.Name | Where-Object { $_ -and $legacyMap.ContainsKey($_) }
         if ($legacyPresent -and ($moduleGroups.Name -contains 'Microsoft.Graph')) {
             $findings.Add((New-Finding -Category 'CommandConflict' -Severity 'Critical' `
                 -Message "Legacy module(s) $($legacyPresent -join ', ') are installed alongside Microsoft.Graph, which can cause command name conflicts and inconsistent authentication behavior." `
@@ -141,6 +151,28 @@ function Invoke-PSFixerAnalysis {
                 }
                 catch {
                     Write-Verbose "Could not check gallery version for '$($group.Name)': $_"
+                }
+            }
+        }
+
+        if (-not $NoReport) {
+            $reportDir = Join-Path -Path $HOME -ChildPath 'psfixerreports'
+            if (-not (Test-Path -Path $reportDir)) {
+                New-Item -Path $reportDir -ItemType Directory -Force | Out-Null
+            }
+
+            $reportPath = Join-Path -Path $reportDir -ChildPath "psfixer-report-$(Get-Date -Format 'yyyyMMdd-HHmmss').html"
+            New-PSFixerHtmlReport -Inventory $Inventory -Findings $findings | Set-Content -Path $reportPath -Encoding UTF8
+
+            $reportUri = "file:///$($reportPath -replace '\\', '/')"
+            Write-Host "PSFixer-rapport: $reportUri" -ForegroundColor Cyan
+
+            if (-not $NoOpenReport) {
+                try {
+                    Start-Process -FilePath $reportPath -ErrorAction Stop
+                }
+                catch {
+                    Write-Verbose "Kon het rapport niet automatisch openen: $_"
                 }
             }
         }

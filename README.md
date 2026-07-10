@@ -61,6 +61,10 @@ Set-PSFixerBaseline -WhatIf
 Install-PSFixerProfile -Name M365Admin -WhatIf
 ```
 
+## HTML report
+
+Every `Invoke-PSFixerAnalysis` run (INV-08) writes a self-contained HTML report to `~\psfixerreports\psfixer-report-<timestamp>.html` — severity tiles (Critical/Warning/Info) plus a plain-language findings table — prints a `file://` link to it, and opens it in the default browser. Use `-NoOpenReport` to skip the browser launch, or `-NoReport` to skip report generation entirely (findings are still returned to the pipeline either way).
+
 ## Tests
 
 Requires Pester 5+ (`Install-Module Pester -MinimumVersion 5.0 -Scope CurrentUser -Force`):
