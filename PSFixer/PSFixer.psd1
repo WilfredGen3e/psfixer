@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.10.0'
+    ModuleVersion         = '0.10.1'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -33,7 +33,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Add Install-PSFixerModule: an interactive, categorized module picker (Data/PopularModules.json) with per-module version pinning, -TargetEdition support, and auto-import into the current session.'
+            ReleaseNotes = 'Fix Reset-PSFixerEnvironment -TargetEdition Both/WindowsPowerShell -WhatIf crashing with a JSON parse error: the cross-edition discovery helper silently skipped writing its own temp script under an inherited $WhatIfPreference, then tried to run the nonexistent file.'
         }
     }
 }

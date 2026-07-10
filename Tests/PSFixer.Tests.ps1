@@ -350,6 +350,26 @@ Describe 'Reset-PSFixerEnvironment -Scope Modules with -TargetEdition' {
     }
 }
 
+Describe 'Get-PSFixerEditionModuleDump' {
+    It 'still writes and executes its discovery script when the ambient WhatIfPreference is true' {
+        # Regression test: a colleague hit "Conversion from JSON failed... Unexpected character T"
+        # running Reset-PSFixerEnvironment -TargetEdition Both -WhatIf. Root cause: Set-Content
+        # silently no-ops under an inherited $WhatIfPreference, so the temp discovery script never
+        # got written, and the exe's "cannot find the file" error text was fed into ConvertFrom-Json.
+        # This is a real subprocess call (like the live validation done for this function), not
+        # mocked, since the bug was specifically in that Set-Content-then-execute plumbing.
+        InModuleScope PSFixer {
+            $WhatIfPreference = $true
+            try {
+                { Get-PSFixerEditionModuleDump -Edition WindowsPowerShell } | Should -Not -Throw
+            }
+            finally {
+                $WhatIfPreference = $false
+            }
+        }
+    }
+}
+
 Describe 'Get-PSFixerVersion' {
     It 'returns the version from the module manifest' {
         $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot '..\PSFixer\PSFixer.psd1')

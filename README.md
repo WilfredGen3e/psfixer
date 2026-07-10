@@ -117,6 +117,8 @@ Reset-PSFixerEnvironment -Scope Modules -TargetEdition WindowsPowerShell -WhatIf
 
 Validated live: `Install-PSFixerModuleInEdition` installed `Az.Accounts` into Windows PowerShell 5.1 from a PS7 session (confirmed via a separate `powershell.exe` check before/after), and `Get-PSFixerEditionModuleDump` correctly read Windows PowerShell 5.1's own 99-module inventory, including the same `Managed` classification, from within a PS7 session.
 
+**Fixed:** `Reset-PSFixerEnvironment -Scope Modules -TargetEdition Both -WhatIf` (or `-TargetEdition WindowsPowerShell -WhatIf`) used to crash with `Conversion from JSON failed... Unexpected character T`. Root cause: `Get-PSFixerEditionModuleDump`'s temp discovery script is written via `Set-Content`, which silently no-ops under an ambient `$WhatIfPreference` inherited from the caller — the file never got created, then the code tried to execute it anyway and fed the resulting "file not found" error text into `ConvertFrom-Json`. That helper is pure discovery (it's what `-WhatIf` needs in order to preview anything), not the destructive action itself, so its file I/O now explicitly runs with `-WhatIf:$false` regardless of the caller's preview mode.
+
 ## Ad-hoc module install: `Install-PSFixerModule`
 
 For picking modules outside a named profile — a categorized, interactive checklist (`Data/PopularModules.json`, override with `-CatalogPath`) instead of typing exact module names:

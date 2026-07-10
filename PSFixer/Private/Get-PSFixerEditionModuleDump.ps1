@@ -42,7 +42,13 @@ Get-Module -ListAvailable -ErrorAction SilentlyContinue | ForEach-Object {
 '@
 
     $tempScript = Join-Path -Path $env:TEMP -ChildPath "psfixer-dump-$([guid]::NewGuid()).ps1"
-    Set-Content -Path $tempScript -Value $script -Encoding UTF8
+
+    # This whole function is read-only discovery (it's what tells the caller what -WhatIf
+    # should even preview), not the destructive action itself - so the temp-file plumbing
+    # must always actually happen, regardless of the caller's ambient $WhatIfPreference.
+    # Without -WhatIf:$false here, Set-Content silently no-ops under -WhatIf, the script
+    # file never gets written, and the exe below fails trying to run a nonexistent file.
+    Set-Content -Path $tempScript -Value $script -Encoding UTF8 -WhatIf:$false
 
     try {
         $json = & $exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $tempScript
@@ -59,6 +65,6 @@ Get-Module -ListAvailable -ErrorAction SilentlyContinue | ForEach-Object {
         })
     }
     finally {
-        Remove-Item -Path $tempScript -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path $tempScript -Force -ErrorAction SilentlyContinue -WhatIf:$false
     }
 }
