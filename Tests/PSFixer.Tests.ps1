@@ -170,6 +170,7 @@ Describe 'Install-PSFixerProfile' {
             Mock Get-PSFixerCurrentEdition { 'PS7' }
             Mock Install-Module {}
             Mock Install-PSFixerModuleInEdition {}
+            Mock Import-Module {}
 
             Install-PSFixerProfile -Name AzureEngineer -TargetEdition Both -Confirm:$false
 
@@ -183,11 +184,37 @@ Describe 'Install-PSFixerProfile' {
             Mock Get-PSFixerCurrentEdition { 'PS7' }
             Mock Install-Module {}
             Mock Install-PSFixerModuleInEdition {}
+            Mock Import-Module {}
 
             Install-PSFixerProfile -Name AzureEngineer -TargetEdition PS7 -Confirm:$false
 
             Should -Invoke Install-Module -Times 1
             Should -Invoke Install-PSFixerModuleInEdition -Times 0
+        }
+    }
+
+    It 'imports each installed module for the current edition unless -NoImport' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Install-Module {}
+            Mock Import-Module {}
+
+            Install-PSFixerProfile -Name M365Admin -TargetEdition PS7 -Confirm:$false
+
+            Should -Invoke Import-Module -Times 1 -ParameterFilter { $Name -eq 'Microsoft.Graph' }
+            Should -Invoke Import-Module -Times 1 -ParameterFilter { $Name -eq 'ExchangeOnlineManagement' }
+        }
+    }
+
+    It 'does not import anything with -NoImport' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Install-Module {}
+            Mock Import-Module {}
+
+            Install-PSFixerProfile -Name M365Admin -TargetEdition PS7 -Confirm:$false -NoImport
+
+            Should -Invoke Import-Module -Times 0
         }
     }
 }

@@ -21,6 +21,11 @@ function Install-PSFixerProfile {
         use. Installing into the "other" edition runs a real Install-Module in
         that edition's own host process (never edits $env:PSModulePath), always
         CurrentUser scope by default so no admin rights are required.
+    .PARAMETER NoImport
+        Don't Import-Module the freshly installed modules into the current
+        session afterward (only applies to modules installed for the currently
+        running edition - the "other" edition can't be imported into this
+        process anyway).
     .EXAMPLE
         Install-PSFixerProfile -Name M365Admin -WhatIf
     .EXAMPLE
@@ -37,7 +42,9 @@ function Install-PSFixerProfile {
         [string]$DefinitionPath,
 
         [ValidateSet('PS7', 'WindowsPowerShell', 'Both')]
-        [string]$TargetEdition
+        [string]$TargetEdition,
+
+        [switch]$NoImport
     )
 
     $profiles = Get-PSFixerProfileDefinition -Path $DefinitionPath
@@ -68,6 +75,10 @@ function Install-PSFixerProfile {
                         $installParams['MinimumVersion'] = $module.MinimumVersion
                     }
                     Install-Module @installParams
+
+                    if (-not $NoImport) {
+                        Import-Module -Name $module.Name -Force -ErrorAction SilentlyContinue
+                    }
                 }
                 else {
                     Install-PSFixerModuleInEdition -Edition $edition -Name $module.Name -MinimumVersion $module.MinimumVersion -Scope $Scope

@@ -129,7 +129,7 @@ Install-PSFixerModule -Name Az.Accounts, Pester -TargetEdition Both     # skip t
 Install-PSFixerModule -Name Pester -Version @{ Pester = '5.5.0' }       # pin an exact version, no prompt
 ```
 
-Same `-TargetEdition`/`-Scope` support as `Install-PSFixerProfile`. Modules installed for the currently running edition are `Import-Module`'d right away (`-NoImport` to skip).
+Same `-TargetEdition`/`-Scope` support as `Install-PSFixerProfile`. Modules installed for the currently running edition are `Import-Module`'d right away (`-NoImport` to skip) — `Install-PSFixerProfile` does the same for consistency, so either way you can start using a module immediately after install without a separate `Import-Module`.
 
 This surfaced a real bug in the interactivity detection used by the edition/module prompts: `[Environment]::UserInteractive` reflects whether the OS session is a desktop session, not whether *this specific PowerShell process* was started with `-NonInteractive` — which is what actually makes `Read-Host` throw ("PowerShell is in NonInteractive mode"). `Test-PSFixerInteractive` now also checks `[Environment]::GetCommandLineArgs()` for `-NonInteractive`/`-noni`, and every `Read-Host` call in the interactive-prompt helpers is wrapped so a failure falls back to a safe default (PS7, "latest version", "nothing selected") instead of crashing the cmdlet.
 

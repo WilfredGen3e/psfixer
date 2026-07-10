@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.10.2'
+    ModuleVersion         = '0.11.0'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -33,7 +33,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Fix "PSGallery ... not Trusted" never actually clearing: Reset-PSFixerEnvironment and Set-PSFixerBaseline only trusted PSGallery in PowerShellGet, but ANA-06 reads PSResourceGet''s separate trust setting when it is present. Both are now fixed.'
+            ReleaseNotes = 'Install-PSFixerProfile now auto-imports installed modules for the current edition, same as Install-PSFixerModule (-NoImport to skip), for consistent behavior between the two.'
         }
     }
 }
