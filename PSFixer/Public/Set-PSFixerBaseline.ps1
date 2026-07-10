@@ -41,8 +41,15 @@ function Set-PSFixerBaseline {
     }
 
     foreach ($provider in $baseline.PackageProviders) {
+        $minVersion = [version]$provider.MinimumVersion
+        $current = Get-PackageProvider -Name $provider.Name -ErrorAction SilentlyContinue
+
+        if ($current -and [version]$current.Version -ge $minVersion) {
+            continue
+        }
+
         if ($PSCmdlet.ShouldProcess($provider.Name, 'Install/update package provider')) {
-            Install-PackageProvider -Name $provider.Name -MinimumVersion $provider.MinimumVersion -Force -Scope CurrentUser -ErrorAction Stop | Out-Null
+            Install-PackageProvider -Name $provider.Name -MinimumVersion $minVersion -Force -Scope CurrentUser -ErrorAction Stop | Out-Null
         }
     }
 

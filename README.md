@@ -86,6 +86,15 @@ Invoke-Pester -Path .\Tests\PSFixer.Tests.ps1
 
 ## Status
 
-Early scaffold. `Get-PSFixerInventory`, `Get-PSFixerModule`, `Get-PSFixerRepository`, and `Invoke-PSFixerAnalysis` are functionally complete against real environments. `Reset-PSFixerEnvironment`, `Set-PSFixerBaseline`, and `Install-PSFixerProfile` implement the core flows from the PRD but have not yet been run destructively end-to-end (only smoke-tested via `-WhatIf`).
+Core v1.0 flows have been run for real (not just `-WhatIf`) against a live, genuinely cluttered workstation and validated:
 
-NFR-06 (<60s inventory) verified: 4.2s in a fresh session on a workstation with ~275 installed modules. An earlier one-off ~158s reading turned out to be a cold-cache/antivirus first-scan cost (Windows Defender scanning each module file on first touch), not a defect — later runs on the same machine were consistently in the single-digit seconds.
+- `Reset-PSFixerEnvironment -Scope Modules` removed ~80 duplicate/old Az module versions; all key modules (Az.Accounts, Az.Resources, Az.KeyVault, Microsoft.Graph.Authentication, ExchangeOnlineManagement, PnP.PowerShell) still imported correctly afterward at their kept (newest) version.
+- Idempotent (NFR-03): a second `-Scope Modules`/`-Scope Providers`/`-Scope Repositories` run in a row found nothing left to change.
+- NFR-06 (<60s inventory) verified: 4.2s in a fresh session on a workstation with ~275 installed modules. An earlier one-off ~158s reading turned out to be a cold-cache/antivirus first-scan cost (Windows Defender scanning each module file on first touch), not a defect.
+
+Two real bugs were found and fixed by this testing:
+
+- `-Scope Providers` (and `Set-PSFixerBaseline`) used to unconditionally try to reinstall NuGet at a fixed old minimum version even when a newer one was already present, which could fail if that exact old version was no longer resolvable from the provider catalog. Both now check the currently installed version first and skip if it already satisfies the minimum.
+- `Reset-PSFixerEnvironment` could log a module version as "Removed" when it wasn't: `Uninstall-Module`/`Uninstall-PSResource` report failure to remove an in-box Windows module (e.g. the Pester 3.4.0 that ships with Windows PowerShell) via a non-terminating warning, not an exception, so the original `try/catch` missed it. The cmdlet now verifies the file is actually gone before logging success.
+
+Known limitation: modules that ship in-box with Windows (Pester 3.4.0, PackageManagement) cannot be removed via the package manager at all — PSFixer now reports this as a failure rather than silently pretending to succeed, but doesn't attempt a filesystem-level force-delete (would need elevation and risks touching a protected OS component).

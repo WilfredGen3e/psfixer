@@ -66,11 +66,22 @@ function Reset-PSFixerEnvironment {
                 if ($PSCmdlet.ShouldProcess($target, 'Uninstall duplicate/old module version')) {
                     try {
                         if (Get-Command -Name Uninstall-PSResource -ErrorAction SilentlyContinue) {
-                            Uninstall-PSResource -Name $entry.Name -Version $entry.Version -SkipDependencyCheck -ErrorAction Stop
+                            Uninstall-PSResource -Name $entry.Name -Version $entry.Version -SkipDependencyCheck -ErrorAction Stop -WarningAction Stop
                         }
                         else {
-                            Uninstall-Module -Name $entry.Name -RequiredVersion $entry.Version -Force -ErrorAction Stop
+                            Uninstall-Module -Name $entry.Name -RequiredVersion $entry.Version -Force -ErrorAction Stop -WarningAction Stop
                         }
+
+                        # Uninstall-Module/-PSResource can "succeed" (no exception) while writing a
+                        # non-terminating warning instead - e.g. Windows in-box modules (like the
+                        # bundled Pester 3.4.0) were never registered as an installed package, so
+                        # there's nothing to uninstall from PowerShellGet's point of view even though
+                        # the files are still on disk. -WarningAction Stop catches most of those, but
+                        # verify on disk too before claiming success.
+                        if (Test-Path -Path $entry.Path) {
+                            throw "Bestand staat nog op '$($entry.Path)' na uninstall-poging (waarschijnlijk een ingebouwde Windows-module die niet via de package manager te verwijderen is)."
+                        }
+
                         Write-PSFixerLog -Path $LogPath -Message "Removed $target" -Level Info
                     }
                     catch {
@@ -94,9 +105,15 @@ function Reset-PSFixerEnvironment {
     }
 
     if ('Providers' -in $Scope) {
-        if ($PSCmdlet.ShouldProcess('NuGet', 'Install/update package provider')) {
+        $minNuGet = [version]'2.8.5.201'
+        $currentNuGet = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
+
+        if ($currentNuGet -and [version]$currentNuGet.Version -ge $minNuGet) {
+            Write-PSFixerLog -Path $LogPath -Message "NuGet provider $($currentNuGet.Version) already satisfies the minimum ($minNuGet); nothing to do" -Level Info
+        }
+        elseif ($PSCmdlet.ShouldProcess('NuGet', 'Install/update package provider')) {
             try {
-                Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser -ErrorAction Stop | Out-Null
+                Install-PackageProvider -Name NuGet -MinimumVersion $minNuGet -Force -Scope CurrentUser -ErrorAction Stop | Out-Null
                 Write-PSFixerLog -Path $LogPath -Message 'Installed/updated NuGet package provider' -Level Info
             }
             catch {
