@@ -75,3 +75,10 @@ Describe 'Install-PSFixerProfile' {
         { Install-PSFixerProfile -Name 'DoesNotExist' -WhatIf } | Should -Throw "*DoesNotExist*"
     }
 }
+
+Describe 'Get-PSFixerVersion' {
+    It 'returns the version from the module manifest' {
+        $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot '..\PSFixer\PSFixer.psd1')
+        Get-PSFixerVersion | Should -Be ([version]$manifest.ModuleVersion)
+    }
+}

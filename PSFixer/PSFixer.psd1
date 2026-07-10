@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.1.0'
+    ModuleVersion         = '0.2.0'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -13,6 +13,7 @@
         'Get-PSFixerInventory'
         'Get-PSFixerModule'
         'Get-PSFixerRepository'
+        'Get-PSFixerVersion'
         'Invoke-PSFixerAnalysis'
         'Reset-PSFixerEnvironment'
         'Set-PSFixerBaseline'
@@ -29,7 +30,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Initial scaffold based on PSFixer PRD v1.0 (2026-07-10).'
+            ReleaseNotes = 'Add Get-PSFixerVersion and the Install-PSFixer.ps1 bootstrap/update script.'
         }
     }
 }

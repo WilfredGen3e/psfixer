@@ -31,7 +31,17 @@ docs/
 
 All destructive cmdlets implement `SupportsShouldProcess` — use `-WhatIf` before running for real.
 
-## Try it locally
+## Install / update on a workstation
+
+No PSGallery/PowerShellGet dependency, no admin rights required — installs to the CurrentUser module path:
+
+```powershell
+irm https://raw.githubusercontent.com/WilfredGen3e/psfixer/main/Install-PSFixer.ps1 | iex
+```
+
+This always pulls the latest commit on `main`, replaces any existing CurrentUser install, imports the module, and prints the available commands. Re-run the same line any time to update. Check the installed version with `Get-PSFixerVersion`.
+
+## Try it locally (from a clone)
 
 ```powershell
 Import-Module .\PSFixer\PSFixer.psd1 -Force
