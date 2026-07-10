@@ -134,12 +134,26 @@ function Reset-PSFixerEnvironment {
 
     if ('Repositories' -in $Scope) {
         if ($PSCmdlet.ShouldProcess('PSGallery', 'Register/trust repository')) {
+            # PowerShellGet (Get-PSRepository) and PSResourceGet (Get-PSResourceRepository) keep
+            # entirely separate trust settings for PSGallery, even though they point at the same
+            # URL - trusting one does not trust the other. Get-PSFixerRepository/ANA-06 prefer
+            # PSResourceGet when it's present, so both must be fixed here or the finding never
+            # actually clears.
             if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
                 Register-PSRepository -Default -ErrorAction Stop
-                Write-PSFixerLog -Path $LogPath -Message 'Registered PSGallery' -Level Info
+                Write-PSFixerLog -Path $LogPath -Message 'Registered PSGallery (PowerShellGet)' -Level Info
             }
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction Stop
-            Write-PSFixerLog -Path $LogPath -Message 'Set PSGallery to Trusted' -Level Info
+            Write-PSFixerLog -Path $LogPath -Message 'Set PSGallery to Trusted (PowerShellGet)' -Level Info
+
+            if (Get-Command -Name Get-PSResourceRepository -ErrorAction SilentlyContinue) {
+                if (-not (Get-PSResourceRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+                    Register-PSResourceRepository -PSGallery -ErrorAction Stop
+                    Write-PSFixerLog -Path $LogPath -Message 'Registered PSGallery (PSResourceGet)' -Level Info
+                }
+                Set-PSResourceRepository -Name PSGallery -Trusted -ErrorAction Stop
+                Write-PSFixerLog -Path $LogPath -Message 'Set PSGallery to Trusted (PSResourceGet)' -Level Info
+            }
         }
     }
 

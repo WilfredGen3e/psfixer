@@ -350,6 +350,51 @@ Describe 'Reset-PSFixerEnvironment -Scope Modules with -TargetEdition' {
     }
 }
 
+Describe 'Repository trust fixes PowerShellGet and PSResourceGet both' {
+    # Regression: PowerShellGet (Set-PSRepository) and PSResourceGet (Set-PSResourceRepository)
+    # keep entirely separate trust settings for PSGallery. Get-PSFixerRepository/ANA-06 prefer
+    # PSResourceGet when present, so a remediation that only touches PowerShellGet never actually
+    # clears the "PSGallery ... not Trusted" finding when PSResourceGet is installed.
+
+    It 'Reset-PSFixerEnvironment -Scope Repositories trusts PSGallery in both' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerInventory {
+                [pscustomobject]@{ Modules = @(); Repositories = @(); PackageProviders = @(); PowerShellVersions = @() }
+            }
+            Mock Get-PSRepository { [pscustomobject]@{ Name = 'PSGallery' } }
+            Mock Set-PSRepository {}
+            Mock Register-PSRepository {}
+            Mock Get-PSResourceRepository { [pscustomobject]@{ Name = 'PSGallery'; Trusted = $false } }
+            Mock Set-PSResourceRepository {}
+            Mock Register-PSResourceRepository {}
+
+            Reset-PSFixerEnvironment -Scope Repositories -Confirm:$false
+
+            Should -Invoke Set-PSRepository -Times 1 -ParameterFilter { $Name -eq 'PSGallery' -and $InstallationPolicy -eq 'Trusted' }
+            Should -Invoke Set-PSResourceRepository -Times 1 -ParameterFilter { $Name -eq 'PSGallery' -and $Trusted -eq $true }
+        }
+    }
+
+    It 'Set-PSFixerBaseline trusts PSGallery in both' {
+        InModuleScope PSFixer {
+            Mock Get-PSRepository { [pscustomobject]@{ Name = 'PSGallery' } }
+            Mock Set-PSRepository {}
+            Mock Register-PSRepository {}
+            Mock Get-PSResourceRepository { [pscustomobject]@{ Name = 'PSGallery'; Trusted = $false } }
+            Mock Set-PSResourceRepository {}
+            Mock Register-PSResourceRepository {}
+            Mock Get-PackageProvider { [pscustomobject]@{ Name = 'NuGet'; Version = [version]'3.0.0.1' } }
+            Mock Get-Module { [pscustomobject]@{ Name = 'Microsoft.PowerShell.PSResourceGet' } } -ParameterFilter { $ListAvailable }
+            Mock Test-PSFixerBaseline {}
+
+            Set-PSFixerBaseline -Confirm:$false
+
+            Should -Invoke Set-PSRepository -Times 1 -ParameterFilter { $Name -eq 'PSGallery' -and $InstallationPolicy -eq 'Trusted' }
+            Should -Invoke Set-PSResourceRepository -Times 1 -ParameterFilter { $Name -eq 'PSGallery' -and $Trusted -eq $true }
+        }
+    }
+}
+
 Describe 'Get-PSFixerEditionModuleDump' {
     It 'still writes and executes its discovery script when the ambient WhatIfPreference is true' {
         # Regression test: a colleague hit "Conversion from JSON failed... Unexpected character T"

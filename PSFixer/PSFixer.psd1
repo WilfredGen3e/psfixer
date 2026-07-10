@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.10.1'
+    ModuleVersion         = '0.10.2'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -33,7 +33,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Fix Reset-PSFixerEnvironment -TargetEdition Both/WindowsPowerShell -WhatIf crashing with a JSON parse error: the cross-edition discovery helper silently skipped writing its own temp script under an inherited $WhatIfPreference, then tried to run the nonexistent file.'
+            ReleaseNotes = 'Fix "PSGallery ... not Trusted" never actually clearing: Reset-PSFixerEnvironment and Set-PSFixerBaseline only trusted PSGallery in PowerShellGet, but ANA-06 reads PSResourceGet''s separate trust setting when it is present. Both are now fixed.'
         }
     }
 }

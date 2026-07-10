@@ -26,6 +26,10 @@ function Set-PSFixerBaseline {
 
     foreach ($repo in $baseline.Repositories) {
         if ($PSCmdlet.ShouldProcess($repo.Name, 'Register/trust repository')) {
+            # PowerShellGet (Get-PSRepository) and PSResourceGet (Get-PSResourceRepository) keep
+            # entirely separate trust settings for the same repository - trusting one does not
+            # trust the other. Test-PSFixerBaseline/Get-PSFixerRepository prefer PSResourceGet
+            # when it's present, so both must be fixed here or compliance never actually clears.
             $existing = Get-PSRepository -Name $repo.Name -ErrorAction SilentlyContinue
             if (-not $existing) {
                 if ($repo.Name -eq 'PSGallery') {
@@ -37,6 +41,13 @@ function Set-PSFixerBaseline {
                 }
             }
             Set-PSRepository -Name $repo.Name -InstallationPolicy $repo.InstallationPolicy -ErrorAction Stop
+
+            if ($repo.Name -eq 'PSGallery' -and (Get-Command -Name Get-PSResourceRepository -ErrorAction SilentlyContinue)) {
+                if (-not (Get-PSResourceRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+                    Register-PSResourceRepository -PSGallery -ErrorAction Stop
+                }
+                Set-PSResourceRepository -Name PSGallery -Trusted:($repo.InstallationPolicy -eq 'Trusted') -ErrorAction Stop
+            }
         }
     }
 
