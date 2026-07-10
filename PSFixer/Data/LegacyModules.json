@@ -1,0 +1,22 @@
+{
+  "AzureAD": {
+    "Reason": "Deprecated by Microsoft in favor of Microsoft.Graph. Retirement announced.",
+    "Replacement": "Microsoft.Graph",
+    "Severity": "Critical"
+  },
+  "AzureADPreview": {
+    "Reason": "Deprecated preview build of AzureAD, superseded by Microsoft.Graph.",
+    "Replacement": "Microsoft.Graph",
+    "Severity": "Critical"
+  },
+  "MSOnline": {
+    "Reason": "Legacy MSOnline (MSOL) module, retired by Microsoft.",
+    "Replacement": "Microsoft.Graph",
+    "Severity": "Critical"
+  },
+  "AzureRM": {
+    "Reason": "Superseded by the Az module; AzureRM is retired.",
+    "Replacement": "Az",
+    "Severity": "Critical"
+  }
+}

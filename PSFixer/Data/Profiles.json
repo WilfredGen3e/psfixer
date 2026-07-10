@@ -1,0 +1,17 @@
+{
+  "M365Admin": {
+    "Description": "Modules for day-to-day Microsoft 365 administration.",
+    "Modules": [
+      { "Name": "Microsoft.Graph", "MinimumVersion": null },
+      { "Name": "ExchangeOnlineManagement", "MinimumVersion": null },
+      { "Name": "MicrosoftTeams", "MinimumVersion": null },
+      { "Name": "Az.Accounts", "MinimumVersion": null }
+    ]
+  },
+  "AzureEngineer": {
+    "Description": "Az module family for Azure infrastructure engineers.",
+    "Modules": [
+      { "Name": "Az", "MinimumVersion": null }
+    ]
+  }
+}

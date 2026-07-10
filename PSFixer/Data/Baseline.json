@@ -1,0 +1,21 @@
+{
+  "Name": "Default",
+  "MinimumPowerShellVersion": "7.4.0",
+  "Repositories": [
+    {
+      "Name": "PSGallery",
+      "InstallationPolicy": "Trusted"
+    }
+  ],
+  "PackageProviders": [
+    {
+      "Name": "NuGet",
+      "MinimumVersion": "2.8.5.201"
+    }
+  ],
+  "PreferPSResourceGet": true,
+  "SecurityProtocol": [
+    "Tls12",
+    "Tls13"
+  ]
+}
