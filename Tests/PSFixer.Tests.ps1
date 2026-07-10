@@ -192,6 +192,101 @@ Describe 'Install-PSFixerProfile' {
     }
 }
 
+Describe 'Install-PSFixerModule' {
+    It 'skips the catalog picker when -Name is given' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Read-PSFixerModuleSelection {}
+            Mock Test-PSFixerInteractive { $false }
+            Mock Install-Module {}
+
+            Install-PSFixerModule -Name 'Az.Accounts' -TargetEdition PS7 -Confirm:$false -NoImport
+
+            Should -Invoke Read-PSFixerModuleSelection -Times 0
+            Should -Invoke Install-Module -Times 1 -ParameterFilter { $Name -eq 'Az.Accounts' }
+        }
+    }
+
+    It 'shows the picker and stops cleanly when nothing is selected' {
+        InModuleScope PSFixer {
+            Mock Read-PSFixerModuleSelection { @() }
+            Mock Install-Module {}
+
+            Install-PSFixerModule -Confirm:$false
+
+            Should -Invoke Install-Module -Times 0
+        }
+    }
+
+    It 'uses the picker result when -Name is omitted' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Read-PSFixerModuleSelection { @('Pester') }
+            Mock Test-PSFixerInteractive { $false }
+            Mock Install-Module {}
+
+            Install-PSFixerModule -TargetEdition PS7 -Confirm:$false -NoImport
+
+            Should -Invoke Install-Module -Times 1 -ParameterFilter { $Name -eq 'Pester' }
+        }
+    }
+
+    It 'pins the version from -Version without prompting for that module' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Test-PSFixerInteractive { $true }
+            Mock Read-Host {}
+            Mock Install-Module {}
+
+            Install-PSFixerModule -Name 'Pester' -Version @{ Pester = '5.5.0' } -TargetEdition PS7 -Confirm:$false -NoImport
+
+            Should -Invoke Read-Host -Times 0
+            Should -Invoke Install-Module -Times 1 -ParameterFilter { $Name -eq 'Pester' -and $RequiredVersion -eq '5.5.0' }
+        }
+    }
+
+    It 'installs in-process for the current edition and via the other-edition helper for the other one' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Test-PSFixerInteractive { $false }
+            Mock Install-Module {}
+            Mock Install-PSFixerModuleInEdition {}
+
+            Install-PSFixerModule -Name 'Pester' -TargetEdition Both -Confirm:$false -NoImport
+
+            Should -Invoke Install-Module -Times 1 -ParameterFilter { $Name -eq 'Pester' }
+            Should -Invoke Install-PSFixerModuleInEdition -Times 1 -ParameterFilter { $Edition -eq 'WindowsPowerShell' -and $Name -eq 'Pester' }
+        }
+    }
+
+    It 'imports the module after installing for the current edition unless -NoImport' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Test-PSFixerInteractive { $false }
+            Mock Install-Module {}
+            Mock Import-Module {}
+
+            Install-PSFixerModule -Name 'Pester' -TargetEdition PS7 -Confirm:$false
+
+            Should -Invoke Import-Module -Times 1 -ParameterFilter { $Name -eq 'Pester' }
+        }
+    }
+
+    It 'does not install or import anything under -WhatIf' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Test-PSFixerInteractive { $false }
+            Mock Install-Module {}
+            Mock Import-Module {}
+
+            Install-PSFixerModule -Name 'Pester' -TargetEdition PS7 -WhatIf
+
+            Should -Invoke Install-Module -Times 0
+            Should -Invoke Import-Module -Times 0
+        }
+    }
+}
+
 Describe 'Resolve-PSFixerTargetEdition' {
     InModuleScope PSFixer {
         It 'returns the explicit single edition without prompting' {

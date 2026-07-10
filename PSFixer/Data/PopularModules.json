@@ -1,0 +1,25 @@
+{
+  "M365": [
+    { "Name": "Microsoft.Graph", "Description": "Unified Microsoft Graph SDK (Entra ID, Intune, Teams, etc.)" },
+    { "Name": "ExchangeOnlineManagement", "Description": "Exchange Online / Security & Compliance V3 module" },
+    { "Name": "MicrosoftTeams", "Description": "Microsoft Teams administration" },
+    { "Name": "Microsoft.Online.SharePoint.PowerShell", "Description": "SharePoint Online Management Shell" },
+    { "Name": "PnP.PowerShell", "Description": "PnP PowerShell for SharePoint/M365 automation" }
+  ],
+  "Azure": [
+    { "Name": "Az", "Description": "Full Az module family (Azure Resource Manager)" },
+    { "Name": "Az.Accounts", "Description": "Azure authentication/context (lightweight, needed by all other Az.* modules)" },
+    { "Name": "Az.Resources", "Description": "Azure Resource Manager resource/group management" },
+    { "Name": "Az.KeyVault", "Description": "Azure Key Vault management" },
+    { "Name": "Az.Storage", "Description": "Azure Storage account management" }
+  ],
+  "Identity": [
+    { "Name": "Microsoft.Graph.Authentication", "Description": "Microsoft Graph authentication only (lightweight)" },
+    { "Name": "Microsoft.Graph.Identity.DirectoryManagement", "Description": "Entra ID directory management via Graph" },
+    { "Name": "Microsoft.Graph.Users", "Description": "Entra ID user management via Graph" }
+  ],
+  "Testing": [
+    { "Name": "Pester", "Description": "PowerShell testing framework" },
+    { "Name": "PSScriptAnalyzer", "Description": "PowerShell static analysis / linting" }
+  ]
+}

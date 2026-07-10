@@ -9,6 +9,9 @@ function Install-PSFixerModuleInEdition {
     .PARAMETER Scope
         Install scope. Defaults to CurrentUser, which never requires admin
         rights - AllUsers does, same as when installing in-process.
+    .PARAMETER RequiredVersion
+        Pin an exact version. Takes precedence over -MinimumVersion if both
+        are somehow given.
     #>
     [CmdletBinding()]
     param(
@@ -21,14 +24,18 @@ function Install-PSFixerModuleInEdition {
 
         [string]$MinimumVersion,
 
+        [string]$RequiredVersion,
+
         [ValidateSet('CurrentUser', 'AllUsers')]
         [string]$Scope = 'CurrentUser'
     )
 
     $exe = Get-PSFixerEditionExecutable -Edition $Edition
 
-    $minVersionArg = if ($MinimumVersion) { " -MinimumVersion '$MinimumVersion'" } else { '' }
-    $script = "`$ErrorActionPreference = 'Stop'`nInstall-Module -Name '$Name' -Scope $Scope -Force -AllowClobber$minVersionArg"
+    $versionArg = if ($RequiredVersion) { " -RequiredVersion '$RequiredVersion'" }
+                  elseif ($MinimumVersion) { " -MinimumVersion '$MinimumVersion'" }
+                  else { '' }
+    $script = "`$ErrorActionPreference = 'Stop'`nInstall-Module -Name '$Name' -Scope $Scope -Force -AllowClobber$versionArg"
 
     $tempScript = Join-Path -Path $env:TEMP -ChildPath "psfixer-install-$([guid]::NewGuid()).ps1"
     Set-Content -Path $tempScript -Value $script -Encoding UTF8

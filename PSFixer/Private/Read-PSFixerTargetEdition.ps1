@@ -17,7 +17,16 @@ function Read-PSFixerTargetEdition {
     Write-Host '  [1] Alleen PowerShell 7 (aanbevolen)'
     Write-Host '  [2] Alleen Windows PowerShell 5.1'
     Write-Host '  [3] Beide'
-    $choice = Read-Host -Prompt 'Keuze [1]'
+
+    try {
+        $choice = Read-Host -Prompt 'Keuze [1]'
+    }
+    catch {
+        # Read-Host can still fail even when Test-PSFixerInteractive says yes (host
+        # quirks) - fall back to the safe/recommended default rather than crashing.
+        Write-Verbose "Kon niet interactief vragen welke editie: $_. Val terug op PS7."
+        return 'PS7'
+    }
 
     switch ($choice) {
         '2' { 'WindowsPowerShell' }

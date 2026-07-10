@@ -28,6 +28,7 @@ docs/
 | `Reset-PSFixerEnvironment` | §5.3 |
 | `Set-PSFixerBaseline` / `Test-PSFixerBaseline` | §5.4 |
 | `Install-PSFixerProfile` / `Update-PSFixerProfile` | §5.5 |
+| `Install-PSFixerModule` | ad-hoc module picker (see below) |
 | `Restore-PSFixerSnapshot` | HER-06 rollback |
 
 All destructive cmdlets implement `SupportsShouldProcess` — use `-WhatIf` before running for real.
@@ -115,3 +116,17 @@ Reset-PSFixerEnvironment -Scope Modules -TargetEdition WindowsPowerShell -WhatIf
 ```
 
 Validated live: `Install-PSFixerModuleInEdition` installed `Az.Accounts` into Windows PowerShell 5.1 from a PS7 session (confirmed via a separate `powershell.exe` check before/after), and `Get-PSFixerEditionModuleDump` correctly read Windows PowerShell 5.1's own 99-module inventory, including the same `Managed` classification, from within a PS7 session.
+
+## Ad-hoc module install: `Install-PSFixerModule`
+
+For picking modules outside a named profile — a categorized, interactive checklist (`Data/PopularModules.json`, override with `-CatalogPath`) instead of typing exact module names:
+
+```powershell
+Install-PSFixerModule                                                   # shows the picker, asks per-module version (blank = latest)
+Install-PSFixerModule -Name Az.Accounts, Pester -TargetEdition Both     # skip the picker, install specific modules
+Install-PSFixerModule -Name Pester -Version @{ Pester = '5.5.0' }       # pin an exact version, no prompt
+```
+
+Same `-TargetEdition`/`-Scope` support as `Install-PSFixerProfile`. Modules installed for the currently running edition are `Import-Module`'d right away (`-NoImport` to skip).
+
+This surfaced a real bug in the interactivity detection used by the edition/module prompts: `[Environment]::UserInteractive` reflects whether the OS session is a desktop session, not whether *this specific PowerShell process* was started with `-NonInteractive` — which is what actually makes `Read-Host` throw ("PowerShell is in NonInteractive mode"). `Test-PSFixerInteractive` now also checks `[Environment]::GetCommandLineArgs()` for `-NonInteractive`/`-noni`, and every `Read-Host` call in the interactive-prompt helpers is wrapped so a failure falls back to a safe default (PS7, "latest version", "nothing selected") instead of crashing the cmdlet.

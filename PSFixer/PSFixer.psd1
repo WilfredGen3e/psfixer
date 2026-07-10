@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.9.0'
+    ModuleVersion         = '0.10.0'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -19,6 +19,7 @@
         'Set-PSFixerBaseline'
         'Test-PSFixerBaseline'
         'Install-PSFixerProfile'
+        'Install-PSFixerModule'
         'Update-PSFixerProfile'
         'Update-PSFixerModule'
         'Restore-PSFixerSnapshot'
@@ -32,7 +33,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Install-PSFixerProfile and Reset-PSFixerEnvironment gain -TargetEdition (PS7/WindowsPowerShell/Both), with an interactive prompt when omitted. Acting on the "other" edition genuinely runs Install-Module/Uninstall-Module in that edition''s own host process (pwsh.exe/powershell.exe), always CurrentUser scope by default - no admin rights required.'
+            ReleaseNotes = 'Add Install-PSFixerModule: an interactive, categorized module picker (Data/PopularModules.json) with per-module version pinning, -TargetEdition support, and auto-import into the current session.'
         }
     }
 }
