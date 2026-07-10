@@ -82,3 +82,23 @@ Describe 'Get-PSFixerVersion' {
         Get-PSFixerVersion | Should -Be ([version]$manifest.ModuleVersion)
     }
 }
+
+Describe 'Update-PSFixerModule' {
+    It 'does not contact GitHub under -WhatIf' {
+        InModuleScope PSFixer {
+            Mock Invoke-RestMethod {}
+            Update-PSFixerModule -WhatIf
+            Should -Invoke Invoke-RestMethod -Times 0
+        }
+    }
+
+    It 'downloads the bootstrap script and invokes it when confirmed' {
+        InModuleScope PSFixer {
+            Mock Invoke-RestMethod { 'param($Repo, $Branch) $script:capturedArgs = @($Repo, $Branch)' }
+            Update-PSFixerModule -Confirm:$false
+            Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter {
+                $Uri -eq 'https://raw.githubusercontent.com/WilfredGen3e/psfixer/main/Install-PSFixer.ps1'
+            }
+        }
+    }
+}

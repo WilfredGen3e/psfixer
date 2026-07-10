@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.2.0'
+    ModuleVersion         = '0.3.0'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -20,6 +20,7 @@
         'Test-PSFixerBaseline'
         'Install-PSFixerProfile'
         'Update-PSFixerProfile'
+        'Update-PSFixerModule'
     )
     CmdletsToExport       = @()
     VariablesToExport     = @()
@@ -30,7 +31,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Add Get-PSFixerVersion and the Install-PSFixer.ps1 bootstrap/update script.'
+            ReleaseNotes = 'Add Update-PSFixerModule to self-update from an already-loaded session.'
         }
     }
 }

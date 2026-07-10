@@ -41,6 +41,14 @@ irm https://raw.githubusercontent.com/WilfredGen3e/psfixer/main/Install-PSFixer.
 
 This always pulls the latest commit on `main`, replaces any existing CurrentUser install, imports the module, and prints the available commands. Re-run the same line any time to update. Check the installed version with `Get-PSFixerVersion`.
 
+Once installed, you can also update from within an already-loaded session — no need to re-paste the `irm | iex` line:
+
+```powershell
+Update-PSFixerModule
+```
+
+This downloads and re-runs the same `Install-PSFixer.ps1` bootstrap script, so both paths share a single source of truth.
+
 ## Try it locally (from a clone)
 
 ```powershell
