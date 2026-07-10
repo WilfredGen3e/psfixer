@@ -89,8 +89,10 @@ Invoke-Pester -Path .\Tests\PSFixer.Tests.ps1
 Core v1.0 flows have been run for real (not just `-WhatIf`) against a live, genuinely cluttered workstation and validated:
 
 - `Reset-PSFixerEnvironment -Scope Modules` removed ~80 duplicate/old Az module versions; all key modules (Az.Accounts, Az.Resources, Az.KeyVault, Microsoft.Graph.Authentication, ExchangeOnlineManagement, PnP.PowerShell) still imported correctly afterward at their kept (newest) version.
-- Idempotent (NFR-03): a second `-Scope Modules`/`-Scope Providers`/`-Scope Repositories` run in a row found nothing left to change.
+- `Install-PSFixerProfile -Name M365Admin` really installed/updated Microsoft.Graph, ExchangeOnlineManagement, MicrosoftTeams, and Az.Accounts to current versions.
+- Idempotent (NFR-03): a second `-Scope Modules`/`-Scope Providers`/`-Scope Repositories` run, and a second `Set-PSFixerBaseline` run, both found nothing left to change.
 - NFR-06 (<60s inventory) verified: 4.2s in a fresh session on a workstation with ~275 installed modules. An earlier one-off ~158s reading turned out to be a cold-cache/antivirus first-scan cost (Windows Defender scanning each module file on first touch), not a defect.
+- §8 acceptance: `Connect-MgGraph`, `Connect-ExchangeOnline`, `Connect-AzAccount` are all present and resolvable after `Install-PSFixerProfile M365Admin`. Actually completing an interactive sign-in (browser/MFA) has to be done by a human, not automatable — not yet exercised end-to-end.
 
 Two real bugs were found and fixed by this testing:
 
