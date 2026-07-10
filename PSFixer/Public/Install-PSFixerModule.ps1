@@ -106,7 +106,12 @@ function Install-PSFixerModule {
                     Install-Module @installParams
 
                     if (-not $NoImport) {
-                        Import-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
+                        try {
+                            Import-Module -Name $moduleName -Force -ErrorAction Stop
+                        }
+                        catch {
+                            Write-Warning "Module '$moduleName' is installed but could not be imported into this session: $_"
+                        }
                     }
                 }
                 else {

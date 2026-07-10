@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.11.0'
+    ModuleVersion         = '0.11.1'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -33,7 +33,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Install-PSFixerProfile now auto-imports installed modules for the current edition, same as Install-PSFixerModule (-NoImport to skip), for consistent behavior between the two.'
+            ReleaseNotes = 'Import failures after Install-PSFixerProfile/Install-PSFixerModule now surface as a warning instead of being silently swallowed.'
         }
     }
 }
