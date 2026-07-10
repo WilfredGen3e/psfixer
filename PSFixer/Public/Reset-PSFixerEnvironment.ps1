@@ -17,10 +17,20 @@ function Reset-PSFixerEnvironment {
         Defaults to a timestamped file under $env:TEMP\PSFixer.
     .PARAMETER LogPath
         File to append action log entries to (HER-08).
+    .PARAMETER TargetEdition
+        Which PowerShell edition(s) the Modules scope should clean up: 'PS7',
+        'WindowsPowerShell', or 'Both'. If omitted, prompts interactively when
+        possible; falls back to whichever edition is currently running for
+        non-interactive/scripted use. Cleaning up the "other" edition runs
+        Uninstall-Module/-PSResource in that edition's own host process (never
+        edits $env:PSModulePath) and never requires admin rights for
+        CurrentUser-scoped modules.
     .EXAMPLE
         Reset-PSFixerEnvironment -Scope Modules -WhatIf
     .EXAMPLE
         Reset-PSFixerEnvironment -Confirm:$false
+    .EXAMPLE
+        Reset-PSFixerEnvironment -Scope Modules -TargetEdition Both -Confirm:$false
     #>
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     param(
@@ -31,7 +41,10 @@ function Reset-PSFixerEnvironment {
 
         [string]$SnapshotPath = (Join-Path -Path $env:TEMP -ChildPath 'PSFixer'),
 
-        [string]$LogPath
+        [string]$LogPath,
+
+        [ValidateSet('PS7', 'WindowsPowerShell', 'Both')]
+        [string]$TargetEdition
     )
 
     if ($Scope -contains 'All') {
@@ -53,48 +66,66 @@ function Reset-PSFixerEnvironment {
     Write-PSFixerLog -Path $LogPath -Message "Snapshot written to $snapshotFile" -Level Info
 
     if ('Modules' -in $Scope) {
-        $moduleGroups = $inventory.Modules | Group-Object -Property Name
-        foreach ($group in $moduleGroups) {
-            # Skip entries the package manager doesn't track (in-box Windows modules like the
-            # bundled Pester or PackageManagement) - removal is guaranteed to fail for those, so
-            # don't attempt it and don't let one pick $keep.
-            $manageable = @($group.Group | Where-Object { $_.Managed -ne $false })
-            if ($manageable.Count -lt 2) {
-                continue
+        $editions = Resolve-PSFixerTargetEdition -TargetEdition $TargetEdition
+        $currentEdition = Get-PSFixerCurrentEdition
+
+        foreach ($edition in $editions) {
+            $modulesForEdition = if ($edition -eq $currentEdition) {
+                $inventory.Modules
+            }
+            else {
+                Get-PSFixerEditionModuleDump -Edition $edition
             }
 
-            $keep = $KeepVersion[$group.Name]
-            if (-not $keep) {
-                $keep = ($manageable.Version | Sort-Object -Descending | Select-Object -First 1)
-            }
+            $moduleGroups = $modulesForEdition | Group-Object -Property Name
+            foreach ($group in $moduleGroups) {
+                # Skip entries the package manager doesn't track (in-box Windows modules like
+                # the bundled Pester or PackageManagement) - removal is guaranteed to fail for
+                # those, so don't attempt it and don't let one pick $keep.
+                $manageable = @($group.Group | Where-Object { $_.Managed -ne $false })
+                if ($manageable.Count -lt 2) {
+                    continue
+                }
 
-            $toRemove = $manageable | Where-Object { $_.Version -ne $keep }
-            foreach ($entry in $toRemove) {
-                $target = "$($entry.Name) $($entry.Version) [$($entry.Path)]"
-                if ($PSCmdlet.ShouldProcess($target, 'Uninstall duplicate/old module version')) {
-                    try {
-                        if (Get-Command -Name Uninstall-PSResource -ErrorAction SilentlyContinue) {
-                            Uninstall-PSResource -Name $entry.Name -Version $entry.Version -SkipDependencyCheck -ErrorAction Stop -WarningAction Stop
-                        }
-                        else {
-                            Uninstall-Module -Name $entry.Name -RequiredVersion $entry.Version -Force -ErrorAction Stop -WarningAction Stop
-                        }
+                $keep = $KeepVersion[$group.Name]
+                if (-not $keep) {
+                    $keep = ($manageable.Version | Sort-Object -Descending | Select-Object -First 1)
+                }
 
-                        # Uninstall-Module/-PSResource can "succeed" (no exception) while writing a
-                        # non-terminating warning instead - e.g. Windows in-box modules (like the
-                        # bundled Pester 3.4.0) were never registered as an installed package, so
-                        # there's nothing to uninstall from PowerShellGet's point of view even though
-                        # the files are still on disk. -WarningAction Stop catches most of those, but
-                        # verify on disk too before claiming success.
-                        if (Test-Path -Path $entry.Path) {
-                            throw "Bestand staat nog op '$($entry.Path)' na uninstall-poging (waarschijnlijk een ingebouwde Windows-module die niet via de package manager te verwijderen is)."
-                        }
+                $toRemove = $manageable | Where-Object { $_.Version -ne $keep }
+                foreach ($entry in $toRemove) {
+                    $target = "$($entry.Name) $($entry.Version) [$($entry.Path)] [$edition]"
+                    if ($PSCmdlet.ShouldProcess($target, 'Uninstall duplicate/old module version')) {
+                        try {
+                            if ($edition -eq $currentEdition) {
+                                if (Get-Command -Name Uninstall-PSResource -ErrorAction SilentlyContinue) {
+                                    Uninstall-PSResource -Name $entry.Name -Version $entry.Version -SkipDependencyCheck -ErrorAction Stop -WarningAction Stop
+                                }
+                                else {
+                                    Uninstall-Module -Name $entry.Name -RequiredVersion $entry.Version -Force -ErrorAction Stop -WarningAction Stop
+                                }
+                            }
+                            else {
+                                Uninstall-PSFixerModuleInEdition -Edition $edition -Name $entry.Name -Version $entry.Version
+                            }
 
-                        Write-PSFixerLog -Path $LogPath -Message "Removed $target" -Level Info
-                    }
-                    catch {
-                        Write-PSFixerLog -Path $LogPath -Message "Failed to remove $target : $_" -Level Critical
-                        Write-Warning "Failed to remove $target : $_"
+                            # Uninstall-Module/-PSResource can "succeed" (no exception) while writing a
+                            # non-terminating warning instead - e.g. Windows in-box modules (like the
+                            # bundled Pester 3.4.0) were never registered as an installed package, so
+                            # there's nothing to uninstall from PowerShellGet's point of view even though
+                            # the files are still on disk. Verify on disk before claiming success - this
+                            # also works for the other-edition path, since a filesystem path doesn't
+                            # care which PowerShell process checks it.
+                            if (Test-Path -Path $entry.Path) {
+                                throw "Bestand staat nog op '$($entry.Path)' na uninstall-poging (waarschijnlijk een ingebouwde Windows-module die niet via de package manager te verwijderen is)."
+                            }
+
+                            Write-PSFixerLog -Path $LogPath -Message "Removed $target" -Level Info
+                        }
+                        catch {
+                            Write-PSFixerLog -Path $LogPath -Message "Failed to remove $target : $_" -Level Critical
+                            Write-Warning "Failed to remove $target : $_"
+                        }
                     }
                 }
             }

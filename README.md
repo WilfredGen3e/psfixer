@@ -102,3 +102,16 @@ Two real bugs were found and fixed by this testing:
 Known limitation: modules that ship in-box with Windows (Pester 3.4.0, PackageManagement) cannot be removed via the package manager at all — PSFixer now reports this as a failure rather than silently pretending to succeed, but doesn't attempt a filesystem-level force-delete (would need elevation and risks touching a protected OS component).
 
 **In-box modules are filtered out of findings by default.** `Get-PSFixerModule` marks every entry `Managed` — `$true` if it shows up in `Get-InstalledPSResource`/`Get-InstalledModule` (i.e. was actually installed via the package manager), `$false` if it's just something Windows ships (in-box Pester, PackageManagement, etc.). `Invoke-PSFixerAnalysis`'s ANA-01 (`DuplicateModule`) and ANA-02 (`MultipleVersions`) only consider `Managed` entries by default, since unmanaged ones can't be acted on anyway — pass `-IncludeUnmanaged` to see them. `Reset-PSFixerEnvironment -Scope Modules` does the same: it no longer attempts to touch unmanaged entries at all. Real-world result on a validated workstation: 17 findings → 0 after cleanup, with the 3 structurally-unfixable in-box duplicates still visible via `-IncludeUnmanaged` but no longer cluttering the default report.
+
+## Windows PowerShell 5.1 vs. PowerShell 7
+
+`Install-Module -Scope CurrentUser` always lands in whichever edition's own personal module path you ran it from — PS7's `Documents\PowerShell\Modules` and Windows PowerShell 5.1's `Documents\WindowsPowerShell\Modules` never share modules. So a workstation can genuinely have Az/Graph/Exchange fully set up in PS7 and nothing in Windows PowerShell 5.1, or vice versa — that's expected PowerShell behavior, not something `Get-PSFixerInventory` alone can fix (it only ever sees the edition it's currently running in).
+
+`Install-PSFixerProfile` and `Reset-PSFixerEnvironment -Scope Modules` both take a `-TargetEdition` parameter (`PS7`, `WindowsPowerShell`, or `Both`). If omitted in an interactive session, you're prompted to choose. Targeting the "other" edition genuinely spawns that edition's own `pwsh.exe`/`powershell.exe` to run the install/uninstall there — it never edits `$env:PSModulePath` as a workaround — and always defaults to `CurrentUser` scope, so no admin rights are required either way:
+
+```powershell
+Install-PSFixerProfile -Name M365Admin -TargetEdition Both -Confirm:$false
+Reset-PSFixerEnvironment -Scope Modules -TargetEdition WindowsPowerShell -WhatIf
+```
+
+Validated live: `Install-PSFixerModuleInEdition` installed `Az.Accounts` into Windows PowerShell 5.1 from a PS7 session (confirmed via a separate `powershell.exe` check before/after), and `Get-PSFixerEditionModuleDump` correctly read Windows PowerShell 5.1's own 99-module inventory, including the same `Managed` classification, from within a PS7 session.

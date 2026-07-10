@@ -164,6 +164,95 @@ Describe 'Install-PSFixerProfile' {
     It 'throws a clear error for an unknown profile name' {
         { Install-PSFixerProfile -Name 'DoesNotExist' -WhatIf } | Should -Throw "*DoesNotExist*"
     }
+
+    It 'installs in-process for the current edition and via the other-edition helper for the other one' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Install-Module {}
+            Mock Install-PSFixerModuleInEdition {}
+
+            Install-PSFixerProfile -Name AzureEngineer -TargetEdition Both -Confirm:$false
+
+            Should -Invoke Install-Module -Times 1 -ParameterFilter { $Name -eq 'Az' }
+            Should -Invoke Install-PSFixerModuleInEdition -Times 1 -ParameterFilter { $Edition -eq 'WindowsPowerShell' -and $Name -eq 'Az' }
+        }
+    }
+
+    It 'does not touch the other edition when -TargetEdition is a single edition' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Install-Module {}
+            Mock Install-PSFixerModuleInEdition {}
+
+            Install-PSFixerProfile -Name AzureEngineer -TargetEdition PS7 -Confirm:$false
+
+            Should -Invoke Install-Module -Times 1
+            Should -Invoke Install-PSFixerModuleInEdition -Times 0
+        }
+    }
+}
+
+Describe 'Resolve-PSFixerTargetEdition' {
+    InModuleScope PSFixer {
+        It 'returns the explicit single edition without prompting' {
+            Mock Read-PSFixerTargetEdition {}
+            Resolve-PSFixerTargetEdition -TargetEdition 'WindowsPowerShell' | Should -Be 'WindowsPowerShell'
+            Should -Invoke Read-PSFixerTargetEdition -Times 0
+        }
+
+        It 'expands Both into both editions' {
+            Resolve-PSFixerTargetEdition -TargetEdition 'Both' | Should -Be @('PS7', 'WindowsPowerShell')
+        }
+
+        It 'prompts interactively when omitted and the session is interactive' {
+            Mock Test-PSFixerInteractive { $true }
+            Mock Read-PSFixerTargetEdition { 'WindowsPowerShell' }
+            Resolve-PSFixerTargetEdition | Should -Be 'WindowsPowerShell'
+            Should -Invoke Read-PSFixerTargetEdition -Times 1
+        }
+
+        It 'falls back to the current edition when omitted and non-interactive' {
+            Mock Test-PSFixerInteractive { $false }
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Read-PSFixerTargetEdition {}
+            Resolve-PSFixerTargetEdition | Should -Be 'PS7'
+            Should -Invoke Read-PSFixerTargetEdition -Times 0
+        }
+    }
+}
+
+Describe 'Reset-PSFixerEnvironment -Scope Modules with -TargetEdition' {
+    It 'cleans up the other edition via the cross-process helper, not the in-process cmdlets' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerInventory {
+                [pscustomobject]@{
+                    Modules           = @()
+                    Repositories      = @()
+                    PackageProviders  = @()
+                    PowerShellVersions = @()
+                }
+            }
+            Mock Get-PSFixerCurrentEdition { 'PS7' }
+            Mock Get-PSFixerEditionModuleDump {
+                @(
+                    [pscustomobject]@{ Name = 'Az.Accounts'; Version = [version]'2.0.0'; Path = 'C:\Fake\Az.Accounts\2.0.0'; Managed = $true }
+                    [pscustomobject]@{ Name = 'Az.Accounts'; Version = [version]'1.0.0'; Path = 'C:\Fake\Az.Accounts\1.0.0'; Managed = $true }
+                )
+            }
+            Mock Uninstall-PSFixerModuleInEdition {}
+            Mock Uninstall-Module {}
+            Mock Uninstall-PSResource {}
+            Mock Test-Path { $false }
+
+            Reset-PSFixerEnvironment -Scope Modules -TargetEdition WindowsPowerShell -Confirm:$false
+
+            Should -Invoke Uninstall-PSFixerModuleInEdition -Times 1 -ParameterFilter {
+                $Edition -eq 'WindowsPowerShell' -and $Name -eq 'Az.Accounts' -and $Version -eq '1.0.0'
+            }
+            Should -Invoke Uninstall-Module -Times 0
+            Should -Invoke Uninstall-PSResource -Times 0
+        }
+    }
 }
 
 Describe 'Get-PSFixerVersion' {

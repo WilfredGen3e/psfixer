@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.8.0'
+    ModuleVersion         = '0.9.0'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -32,7 +32,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Invoke-PSFixerAnalysis and Reset-PSFixerEnvironment now exclude in-box Windows modules (not installed via the package manager, e.g. bundled Pester/PackageManagement) from duplicate/multiple-version findings by default, since those cannot be acted on. Use -IncludeUnmanaged to see them.'
+            ReleaseNotes = 'Install-PSFixerProfile and Reset-PSFixerEnvironment gain -TargetEdition (PS7/WindowsPowerShell/Both), with an interactive prompt when omitted. Acting on the "other" edition genuinely runs Install-Module/Uninstall-Module in that edition''s own host process (pwsh.exe/powershell.exe), always CurrentUser scope by default - no admin rights required.'
         }
     }
 }
