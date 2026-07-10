@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.5.0'
+    ModuleVersion         = '0.6.0'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -21,6 +21,7 @@
         'Install-PSFixerProfile'
         'Update-PSFixerProfile'
         'Update-PSFixerModule'
+        'Restore-PSFixerSnapshot'
     )
     CmdletsToExport       = @()
     VariablesToExport     = @()
@@ -31,7 +32,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Invoke-PSFixerAnalysis now opens the HTML report in the default browser (-NoOpenReport to skip).'
+            ReleaseNotes = 'Add Restore-PSFixerSnapshot for HER-06 rollback after Reset-PSFixerEnvironment.'
         }
     }
 }

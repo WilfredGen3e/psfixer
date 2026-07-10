@@ -139,6 +139,55 @@ Describe 'Get-PSFixerVersion' {
     }
 }
 
+Describe 'Restore-PSFixerSnapshot' {
+    BeforeAll {
+        $snapshotFile = Join-Path $TestDrive 'inventory-test.json'
+        [pscustomobject]@{
+            Modules = @(
+                [pscustomobject]@{ Name = 'Az.Accounts'; Version = [version]'3.0.4'; Path = 'C:\A\Az.Accounts\3.0.4'; Scope = 'CurrentUser (PS7)' }
+                [pscustomobject]@{ Name = 'Az.Advisor'; Version = [version]'2.0.1'; Path = 'C:\A\Az.Advisor\2.0.1'; Scope = 'AllUsers (PS7)' }
+            )
+        } | ConvertTo-Json -Depth 6 | Set-Content -Path $snapshotFile -Encoding UTF8
+    }
+
+    It 'reinstalls only the module+version pairs that are no longer present, using a real [version] (not the deserialized PSCustomObject)' {
+        InModuleScope PSFixer -Parameters @{ snapshotFile = $snapshotFile } {
+            param($snapshotFile)
+            # Az.Accounts 3.0.4 is "still there"; Az.Advisor 2.0.1 is "missing" and must be restored.
+            Mock Get-PSFixerModule { [pscustomobject]@{ Name = 'Az.Accounts'; Version = [version]'3.0.4'; Path = 'C:\A\Az.Accounts\3.0.4'; Scope = 'CurrentUser (PS7)' } }
+            Mock Install-Module {}
+
+            Restore-PSFixerSnapshot -SnapshotPath $snapshotFile -Confirm:$false
+
+            # Install-Module declares -RequiredVersion as [string], so Pester's mock proxy
+            # coerces the [version] we pass into a string during parameter binding - compare as such.
+            Should -Invoke Install-Module -Times 1 -ParameterFilter {
+                $Name -eq 'Az.Advisor' -and $RequiredVersion -eq '2.0.1' -and $Scope -eq 'AllUsers'
+            }
+            Should -Invoke Install-Module -Times 0 -ParameterFilter { $Name -eq 'Az.Accounts' }
+        }
+    }
+
+    It 'does not reinstall anything under -WhatIf' {
+        InModuleScope PSFixer -Parameters @{ snapshotFile = $snapshotFile } {
+            param($snapshotFile)
+            Mock Get-PSFixerModule { }
+            Mock Install-Module {}
+
+            Restore-PSFixerSnapshot -SnapshotPath $snapshotFile -WhatIf
+
+            Should -Invoke Install-Module -Times 0
+        }
+    }
+
+    It 'throws when no snapshot path is given and none exists under TEMP' {
+        InModuleScope PSFixer {
+            Mock Get-ChildItem { }
+            { Restore-PSFixerSnapshot } | Should -Throw '*Geen snapshot gevonden*'
+        }
+    }
+}
+
 Describe 'Update-PSFixerModule' {
     It 'does not contact GitHub under -WhatIf' {
         InModuleScope PSFixer {

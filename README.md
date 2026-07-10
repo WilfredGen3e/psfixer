@@ -28,6 +28,7 @@ docs/
 | `Reset-PSFixerEnvironment` | §5.3 |
 | `Set-PSFixerBaseline` / `Test-PSFixerBaseline` | §5.4 |
 | `Install-PSFixerProfile` / `Update-PSFixerProfile` | §5.5 |
+| `Restore-PSFixerSnapshot` | HER-06 rollback |
 
 All destructive cmdlets implement `SupportsShouldProcess` — use `-WhatIf` before running for real.
 
@@ -65,6 +66,16 @@ Install-PSFixerProfile -Name M365Admin -WhatIf
 
 Every `Invoke-PSFixerAnalysis` run (INV-08) writes a self-contained HTML report to `~\psfixerreports\psfixer-report-<timestamp>.html` — severity tiles (Critical/Warning/Info) plus a plain-language findings table — prints a `file://` link to it, and opens it in the default browser. Use `-NoOpenReport` to skip the browser launch, or `-NoReport` to skip report generation entirely (findings are still returned to the pipeline either way).
 
+## Rollback
+
+`Reset-PSFixerEnvironment` writes a full inventory snapshot to `$env:TEMP\PSFixer\inventory-<timestamp>.json` before touching anything. If a cleanup turns out to be wrong, `Restore-PSFixerSnapshot` reinstalls any module+version pair from that snapshot that is no longer present (requires PSGallery connectivity):
+
+```powershell
+Restore-PSFixerSnapshot -WhatIf
+Restore-PSFixerSnapshot                                 # uses the most recent snapshot under $env:TEMP\PSFixer
+Restore-PSFixerSnapshot -SnapshotPath 'C:\...\inventory-20260710-113622.json'
+```
+
 ## Tests
 
 Requires Pester 5+ (`Install-Module Pester -MinimumVersion 5.0 -Scope CurrentUser -Force`):
@@ -77,4 +88,4 @@ Invoke-Pester -Path .\Tests\PSFixer.Tests.ps1
 
 Early scaffold. `Get-PSFixerInventory`, `Get-PSFixerModule`, `Get-PSFixerRepository`, and `Invoke-PSFixerAnalysis` are functionally complete against real environments. `Reset-PSFixerEnvironment`, `Set-PSFixerBaseline`, and `Install-PSFixerProfile` implement the core flows from the PRD but have not yet been run destructively end-to-end (only smoke-tested via `-WhatIf`).
 
-Known gap vs. PRD: `Get-PSFixerInventory` took ~158s on a workstation with ~270 installed modules, well over the <60s target in NFR-06 — `Get-Module -ListAvailable` is the bottleneck. Worth revisiting (caching, `Find-Module`-free listing, or narrowing `$env:PSModulePath` scan) before v1.0.
+NFR-06 (<60s inventory) verified: 4.2s in a fresh session on a workstation with ~275 installed modules. An earlier one-off ~158s reading turned out to be a cold-cache/antivirus first-scan cost (Windows Defender scanning each module file on first touch), not a defect — later runs on the same machine were consistently in the single-digit seconds.
