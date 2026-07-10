@@ -55,12 +55,20 @@ function Reset-PSFixerEnvironment {
     if ('Modules' -in $Scope) {
         $moduleGroups = $inventory.Modules | Group-Object -Property Name
         foreach ($group in $moduleGroups) {
-            $keep = $KeepVersion[$group.Name]
-            if (-not $keep) {
-                $keep = ($group.Group.Version | Sort-Object -Descending | Select-Object -First 1)
+            # Skip entries the package manager doesn't track (in-box Windows modules like the
+            # bundled Pester or PackageManagement) - removal is guaranteed to fail for those, so
+            # don't attempt it and don't let one pick $keep.
+            $manageable = @($group.Group | Where-Object { $_.Managed -ne $false })
+            if ($manageable.Count -lt 2) {
+                continue
             }
 
-            $toRemove = $group.Group | Where-Object { $_.Version -ne $keep }
+            $keep = $KeepVersion[$group.Name]
+            if (-not $keep) {
+                $keep = ($manageable.Version | Sort-Object -Descending | Select-Object -First 1)
+            }
+
+            $toRemove = $manageable | Where-Object { $_.Version -ne $keep }
             foreach ($entry in $toRemove) {
                 $target = "$($entry.Name) $($entry.Version) [$($entry.Path)]"
                 if ($PSCmdlet.ShouldProcess($target, 'Uninstall duplicate/old module version')) {

@@ -21,6 +21,12 @@ function Invoke-PSFixerAnalysis {
     .PARAMETER NoOpenReport
         Write the HTML report as usual but don't open it in the default browser.
         Has no effect when -NoReport is also specified.
+    .PARAMETER IncludeUnmanaged
+        Also flag duplicate-location/multiple-version findings (ANA-01, ANA-02)
+        for modules that ship in-box with Windows and were never installed via
+        the package manager (e.g. the Pester bundled with Windows PowerShell,
+        or PackageManagement itself). These can't be removed by
+        Reset-PSFixerEnvironment anyway, so they're excluded by default.
     .EXAMPLE
         Get-PSFixerInventory | Invoke-PSFixerAnalysis
     #>
@@ -34,7 +40,9 @@ function Invoke-PSFixerAnalysis {
 
         [switch]$NoReport,
 
-        [switch]$NoOpenReport
+        [switch]$NoOpenReport,
+
+        [switch]$IncludeUnmanaged
     )
 
     process {
@@ -58,9 +66,18 @@ function Invoke-PSFixerAnalysis {
 
         $moduleGroups = $Inventory.Modules | Group-Object -Property Name
 
+        # Entries with no Managed property (e.g. a hand-built inventory) are treated as
+        # manageable, so this only ever narrows results for real Get-PSFixerInventory input.
+        function Get-PSFixerManageableEntries {
+            param($Entries)
+            if ($IncludeUnmanaged) { return $Entries }
+            return @($Entries | Where-Object { $_.Managed -ne $false })
+        }
+
         # ANA-01: duplicate modules (same module on multiple locations)
         foreach ($group in $moduleGroups) {
-            $distinctPaths = $group.Group | Select-Object -ExpandProperty Path -Unique
+            $entries = Get-PSFixerManageableEntries -Entries $group.Group
+            $distinctPaths = $entries | Select-Object -ExpandProperty Path -Unique
             if ($distinctPaths.Count -gt 1) {
                 $findings.Add((New-Finding -Category 'DuplicateModule' -Severity 'Warning' `
                     -Message "Module '$($group.Name)' is installed in $($distinctPaths.Count) locations." `
@@ -71,7 +88,8 @@ function Invoke-PSFixerAnalysis {
 
         # ANA-02: multiple versions of the same module, mark the one that loads
         foreach ($group in $moduleGroups) {
-            $versions = $group.Group | Select-Object -ExpandProperty Version -Unique
+            $entries = Get-PSFixerManageableEntries -Entries $group.Group
+            $versions = $entries | Select-Object -ExpandProperty Version -Unique
             if ($versions.Count -gt 1) {
                 $loaded = Get-Module -Name $group.Name -ErrorAction SilentlyContinue |
                     Select-Object -ExpandProperty Version -First 1

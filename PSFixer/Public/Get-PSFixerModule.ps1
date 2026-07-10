@@ -18,6 +18,7 @@ function Get-PSFixerModule {
     )
 
     $modules = Get-Module -Name $Name -ListAvailable -ErrorAction SilentlyContinue
+    $managedKeys = Get-PSFixerManagedModuleKeys
 
     foreach ($module in $modules) {
         [pscustomobject]@{
@@ -28,6 +29,7 @@ function Get-PSFixerModule {
             Scope      = Get-PSFixerModuleScope -Path $module.ModuleBase
             Edition    = $module.CompatiblePSEditions -join ','
             Repository = $module.RepositorySourceLocation
+            Managed    = $managedKeys.Contains("$($module.Name)|$($module.Version)")
         }
     }
 }

@@ -25,10 +25,10 @@ Describe 'Invoke-PSFixerAnalysis' {
         $fakeInventory = [pscustomobject]@{
             PSTypeName        = 'PSFixer.Inventory'
             Modules           = @(
-                [pscustomobject]@{ Name = 'Az.Accounts'; Version = [version]'3.0.0'; Path = 'C:\A\Az.Accounts\3.0.0'; Scope = 'CurrentUser (PS7)' }
-                [pscustomobject]@{ Name = 'Az.Accounts'; Version = [version]'2.0.0'; Path = 'C:\B\Az.Accounts\2.0.0'; Scope = 'AllUsers (PS7)' }
-                [pscustomobject]@{ Name = 'MSOnline'; Version = [version]'1.1.183.66'; Path = 'C:\C\MSOnline\1.1.183.66'; Scope = 'CurrentUser (PS7)' }
-                [pscustomobject]@{ Name = 'Microsoft.Graph'; Version = [version]'2.0.0'; Path = 'C:\D\Microsoft.Graph\2.0.0'; Scope = 'CurrentUser (PS7)' }
+                [pscustomobject]@{ Name = 'Az.Accounts'; Version = [version]'3.0.0'; Path = 'C:\A\Az.Accounts\3.0.0'; Scope = 'CurrentUser (PS7)'; Managed = $true }
+                [pscustomobject]@{ Name = 'Az.Accounts'; Version = [version]'2.0.0'; Path = 'C:\B\Az.Accounts\2.0.0'; Scope = 'AllUsers (PS7)'; Managed = $true }
+                [pscustomobject]@{ Name = 'MSOnline'; Version = [version]'1.1.183.66'; Path = 'C:\C\MSOnline\1.1.183.66'; Scope = 'CurrentUser (PS7)'; Managed = $true }
+                [pscustomobject]@{ Name = 'Microsoft.Graph'; Version = [version]'2.0.0'; Path = 'C:\D\Microsoft.Graph\2.0.0'; Scope = 'CurrentUser (PS7)'; Managed = $true }
             )
             Repositories      = @(
                 [pscustomobject]@{ Name = 'PSGallery'; Uri = 'https://www.powershellgallery.com/api/v2'; Trusted = $false; Priority = $null; Provider = 'PowerShellGet' }
@@ -67,6 +67,40 @@ Describe 'Invoke-PSFixerAnalysis' {
 
     It 'does not flag a compliant NuGet provider (ANA-07)' {
         $findings | Where-Object { $_.Category -eq 'PackageProvider' -and $_.Item -eq 'NuGet' } | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Invoke-PSFixerAnalysis unmanaged module filtering' {
+    BeforeAll {
+        $fakeInventory = [pscustomobject]@{
+            PSTypeName       = 'PSFixer.Inventory'
+            Modules          = @(
+                # In-box Windows module: two copies, neither ever installed via the package
+                # manager - should NOT be flagged by default (nothing a user can fix).
+                [pscustomobject]@{ Name = 'PackageManagement'; Version = [version]'1.4.8.1'; Path = 'C:\A\PackageManagement\1.4.8.1'; Scope = 'AllUsers (WindowsPowerShell)'; Managed = $false }
+                [pscustomobject]@{ Name = 'PackageManagement'; Version = [version]'1.4.8.1'; Path = 'C:\B\PackageManagement\1.4.8.1'; Scope = 'Custom'; Managed = $false }
+                # Genuine actionable duplicate: both copies are package-manager managed.
+                [pscustomobject]@{ Name = 'Az.Tools.Predictor'; Version = [version]'1.0.0'; Path = 'C:\C\Az.Tools.Predictor\1.0.0'; Scope = 'CurrentUser (PS7)'; Managed = $true }
+                [pscustomobject]@{ Name = 'Az.Tools.Predictor'; Version = [version]'1.0.0'; Path = 'C:\D\Az.Tools.Predictor\1.0.0'; Scope = 'AllUsers (PS7)'; Managed = $true }
+            )
+            Repositories     = @([pscustomobject]@{ Name = 'PSGallery'; Uri = 'https://www.powershellgallery.com/api/v2'; Trusted = $true; Priority = $null; Provider = 'PowerShellGet' })
+            PackageProviders = @([pscustomobject]@{ Name = 'NuGet'; Version = [version]'2.8.5.201' })
+        }
+    }
+
+    It 'excludes unmanaged (in-box) modules from DuplicateModule by default' {
+        $findings = $fakeInventory | Invoke-PSFixerAnalysis -NoReport
+        $findings | Where-Object { $_.Category -eq 'DuplicateModule' -and $_.Item -eq 'PackageManagement' } | Should -BeNullOrEmpty
+    }
+
+    It 'still flags a genuine duplicate between two managed entries' {
+        $findings = $fakeInventory | Invoke-PSFixerAnalysis -NoReport
+        $findings | Where-Object { $_.Category -eq 'DuplicateModule' -and $_.Item -eq 'Az.Tools.Predictor' } | Should -Not -BeNullOrEmpty
+    }
+
+    It 'includes unmanaged modules again with -IncludeUnmanaged' {
+        $findings = $fakeInventory | Invoke-PSFixerAnalysis -NoReport -IncludeUnmanaged
+        $findings | Where-Object { $_.Category -eq 'DuplicateModule' -and $_.Item -eq 'PackageManagement' } | Should -Not -BeNullOrEmpty
     }
 }
 

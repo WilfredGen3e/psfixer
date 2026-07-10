@@ -1,6 +1,6 @@
 @{
     RootModule            = 'PSFixer.psm1'
-    ModuleVersion         = '0.7.0'
+    ModuleVersion         = '0.8.0'
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
@@ -32,7 +32,7 @@
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
             ProjectUri   = ''
             LicenseUri   = ''
-            ReleaseNotes = 'Reset-PSFixerEnvironment: fix false-positive package-provider failures and false-positive "Removed" logging for in-box Windows modules that cannot be uninstalled via the package manager. Real-world validated: cleaned up ~80 duplicate/old Az module versions on a live workstation.'
+            ReleaseNotes = 'Invoke-PSFixerAnalysis and Reset-PSFixerEnvironment now exclude in-box Windows modules (not installed via the package manager, e.g. bundled Pester/PackageManagement) from duplicate/multiple-version findings by default, since those cannot be acted on. Use -IncludeUnmanaged to see them.'
         }
     }
 }
