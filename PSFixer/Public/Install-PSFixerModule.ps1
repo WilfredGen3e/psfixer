@@ -56,7 +56,7 @@ function Install-PSFixerModule {
         $Name = Read-PSFixerModuleSelection -Catalog $catalog
 
         if (-not $Name) {
-            Write-Host 'Geen modules geselecteerd.' -ForegroundColor Yellow
+            Write-Host (Get-PSFixerString -Key 'ModuleSelection.NoneSelected') -ForegroundColor Yellow
             return
         }
     }
@@ -68,12 +68,12 @@ function Install-PSFixerModule {
         }
         elseif (Test-PSFixerInteractive) {
             try {
-                $answer = Read-Host -Prompt "Versie voor '$moduleName' (leeg = nieuwste)"
+                $answer = Read-Host -Prompt (Get-PSFixerString -Key 'ModuleSelection.VersionPrompt' -FormatArgs @($moduleName))
             }
             catch {
                 # Read-Host can still fail even when Test-PSFixerInteractive says yes (host
                 # quirks) - fall back to "latest" rather than crashing.
-                Write-Verbose "Kon niet interactief om een versie vragen voor '$moduleName': $_. Gebruik nieuwste."
+                Write-Verbose "Could not interactively ask for a version for '$moduleName': $_. Using latest."
                 $answer = $null
             }
             if ($answer) {

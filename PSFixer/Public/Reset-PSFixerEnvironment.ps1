@@ -117,7 +117,7 @@ function Reset-PSFixerEnvironment {
                             # also works for the other-edition path, since a filesystem path doesn't
                             # care which PowerShell process checks it.
                             if (Test-Path -Path $entry.Path) {
-                                throw "Bestand staat nog op '$($entry.Path)' na uninstall-poging (waarschijnlijk een ingebouwde Windows-module die niet via de package manager te verwijderen is)."
+                                throw (Get-PSFixerString -Key 'Reset.FileStillPresent' -FormatArgs @($entry.Path))
                             }
 
                             Write-PSFixerLog -Path $LogPath -Message "Removed $target" -Level Info

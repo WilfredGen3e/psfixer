@@ -48,7 +48,7 @@ function Show-PSFixerCatalog {
     )
 
     if (-not (Test-PSFixerInteractive)) {
-        throw 'Show-PSFixerCatalog heeft een interactieve sessie nodig om het keuzemenu te tonen. Gebruik Install-PSFixerProfile -Name/Install-PSFixerModule -Name rechtstreeks voor non-interactief/scriptgebruik.'
+        throw (Get-PSFixerString -Key 'Catalog.NonInteractiveError')
     }
 
     $profiles = Get-PSFixerProfileDefinition -Path $ProfileDefinitionPath
@@ -59,7 +59,7 @@ function Show-PSFixerCatalog {
     $moduleNames = Read-PSFixerModuleSelection -Catalog $catalog
 
     if (-not $profileName -and -not $moduleNames) {
-        Write-Host 'Niets geselecteerd.' -ForegroundColor Yellow
+        Write-Host (Get-PSFixerString -Key 'Catalog.NothingSelected') -ForegroundColor Yellow
         return
     }
 

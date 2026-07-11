@@ -44,6 +44,7 @@ Three commands are enough to get going — you never need to memorize the pipeli
 | `Test-PSFixer` | `psdiag` | **What's wrong?** Runs the full diagnosis (inventory + analysis), opens the HTML report. |
 | `Repair-PSFixer` | `psfix` | **Fix it.** No parameters + interactive session → a guided menu. With parameters → scriptable. |
 | `Show-PSFixerCatalog` | `pscat` | **What can I add?** Shows the profile/module picker and installs what you choose. |
+| `Set-PSFixerLanguage` | | Switch interactive prompts and the HTML report between English (default) and Dutch. |
 
 ```powershell
 Test-PSFixer            # or: psdiag
@@ -56,34 +57,39 @@ Show-PSFixerCatalog     # or: pscat
 ```
 PS> Repair-PSFixer
 
-Diagnose draaien...
+Running diagnosis...
 
-Ik heb de volgende problemen gevonden:
-  [ 3x] DuplicateModule - bv. Module 'Az.Accounts' is installed in 3 locations.
-  [ 1x] Repository - bv. PSGallery is registered but not Trusted, which will prompt on every install.
-(J)a voor alles oplossen / (N)ee, per categorie kiezen / (S)la over [J]: J
+I found the following problems:
+  [ 3x] DuplicateModule - e.g. Module 'Az.Accounts' is installed in 3 locations.
+  [ 1x] Repository - e.g. PSGallery is registered but not Trusted, which will prompt on every install.
+(Y)es, fix everything / (N)o, choose per category / (S)kip [Y]: Y
 
-In welke PowerShell-editie wil je dit uitvoeren?
-  [1] Alleen PowerShell 7 (aanbevolen)
-  [2] Alleen Windows PowerShell 5.1
-  [3] Beide
-Keuze [1]: 1
+Which PowerShell edition do you want to run this in?
+  [1] PowerShell 7 only (recommended)
+  [2] Windows PowerShell 5.1 only
+  [3] Both
+Choice [1]: 1
 
-Beschikbare profielen:
+Available profiles:
   [ 1] AzureEngineer - Az module family for Azure infrastructure engineers.
-  [ 2] M365Admin - Modules for day-to-day Microsoft 365 administration.
-Wil je een profiel installeren/updaten? Typ het nummer, of laat leeg om over te slaan: 2
+  [ 2] Helpdesk - Lightweight modules for day-to-day user/mailbox support tasks.
+  [ 3] IntuneAdmin - Modules for Intune / endpoint device management.
+  [ 4] M365Admin - Modules for day-to-day Microsoft 365 administration.
+  [ 5] SecurityConsultant - Modules for Entra ID / Azure security assessments.
+Do you want to install/update a profile? Type the number, or leave blank to skip: 4
 
-Dit ga ik doen:
+Here's what I'll do:
   - Reset-PSFixerEnvironment -Scope Modules,Repositories -TargetEdition PS7
   - Install-PSFixerProfile -Name M365Admin -TargetEdition PS7
-Wil je dit eerst als preview zien (-WhatIf) voordat ik het echt uitvoer? (j/n) [N]: n
-Doorgaan? (j/n) [N]: j
+Do you want to see this as a preview (-WhatIf) first, before I actually run it? (y/n) [N]: n
+Continue? (y/n) [N]: y
 
-Snapshot voor rollback: C:\Users\jdoe\AppData\Local\Temp\PSFixer\inventory-20260711-072519.json
-Terugdraaien kan met: Restore-PSFixerSnapshot -SnapshotPath '...' (of Repair-PSFixer -Rollback)
-Klaar.
+Snapshot for rollback: C:\Users\jdoe\AppData\Local\Temp\PSFixer\inventory-20260711-072519.json
+Roll back with: Restore-PSFixerSnapshot -SnapshotPath '...' (or Repair-PSFixer -Rollback)
+Done.
 ```
+
+Prefer Dutch? `Set-PSFixerLanguage -Language nl` switches every prompt above (and the HTML report) to Dutch for the rest of the session — cmdlet/parameter names and `Get-Help` stay English either way, that's the standard PowerShell convention.
 
 The menu only asks about what's actually relevant — no edition question if only one PowerShell edition is installed, no "clean up legacy modules" question if none were found. Outside an interactive session (CI, scheduled tasks), `Repair-PSFixer` without parameters fails fast with a clear error instead of hanging on a prompt.
 
@@ -205,3 +211,16 @@ This surfaced a real bug in the interactivity detection used by the edition/modu
 `Set-PSRepository -InstallationPolicy Trusted` (PowerShellGet) and `Set-PSResourceRepository -Trusted` (PSResourceGet) are **entirely independent** — even though they both point at `https://www.powershellgallery.com`, trusting PSGallery in one does nothing to the other's own trust flag. `Get-PSFixerRepository` (and therefore `Invoke-PSFixerAnalysis`'s `Repository` finding and `Test-PSFixerBaseline`) prefers PSResourceGet when it's installed, since that's the modern default going forward.
 
 This used to mean `Reset-PSFixerEnvironment -Scope Repositories` and `Set-PSFixerBaseline` could report success while the "PSGallery is registered but not Trusted" finding kept coming back — they only ever called the PowerShellGet cmdlets. Both now also call the PSResourceGet equivalents when that module is present, so the finding actually clears. Verified live: deliberately set `Get-PSResourceRepository`'s PSGallery to untrusted, confirmed `Invoke-PSFixerAnalysis` flags it, ran `Reset-PSFixerEnvironment -Scope Repositories`, confirmed both `Get-PSRepository` and `Get-PSResourceRepository` report `Trusted` afterward and the finding count drops to 0.
+
+## Disclaimer
+
+PSFixer inspects and **modifies your local PowerShell environment**: it can uninstall module versions, change repository trust settings, and install package providers/modules. It is not affiliated with or endorsed by Microsoft.
+
+- Always run `-WhatIf` first (`Repair-PSFixer -WhatIf`, `Reset-PSFixerEnvironment -WhatIf`, ...) to preview what a command would change before running it for real.
+- `Reset-PSFixerEnvironment` snapshots your module inventory before it changes anything, and `Restore-PSFixerSnapshot` (or `Repair-PSFixer -Rollback`) can reinstall what it removed — but this depends on those exact module versions still being available on PSGallery. It is not a full system backup.
+- Try it on a test/non-production machine first if you're unsure what it will find on a given workstation.
+- The module is provided "as is", without warranty of any kind — see [LICENSE](LICENSE). You are responsible for reviewing what it does before running it against systems you care about.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

@@ -17,7 +17,7 @@ function Read-PSFixerProfileSelection {
 
     $indexed = [System.Collections.Generic.List[pscustomobject]]::new()
 
-    Write-Host 'Beschikbare profielen:' -ForegroundColor Cyan
+    Write-Host (Get-PSFixerString -Key 'ProfileSelection.Header') -ForegroundColor Cyan
     # Hashtable key order isn't guaranteed stable (Get-PSFixerProfileDefinition
     # doesn't return an [ordered] hashtable) - sort explicitly so the numbering
     # stays consistent across calls.
@@ -28,12 +28,12 @@ function Read-PSFixerProfileSelection {
     }
 
     try {
-        $selection = Read-Host -Prompt 'Wil je een profiel installeren/updaten? Typ het nummer, of laat leeg om over te slaan'
+        $selection = Read-Host -Prompt (Get-PSFixerString -Key 'ProfileSelection.Prompt')
     }
     catch {
         # Read-Host can still fail even when Test-PSFixerInteractive says yes (host
         # quirks) - fall back to "nothing selected" rather than crashing.
-        Write-Verbose "Kon niet interactief om een profielkeuze vragen: $_. Geen profiel geselecteerd."
+        Write-Verbose "Could not interactively ask for a profile selection: $_. No profile selected."
         return $null
     }
 

@@ -1,4 +1,5 @@
 $PSFixerModuleRoot = $PSScriptRoot
+$PSFixerLanguage = 'en'
 
 $private = Get-ChildItem -Path (Join-Path $PSFixerModuleRoot 'Private') -Filter '*.ps1' -ErrorAction SilentlyContinue
 $public = Get-ChildItem -Path (Join-Path $PSFixerModuleRoot 'Public') -Filter '*.ps1' -ErrorAction SilentlyContinue

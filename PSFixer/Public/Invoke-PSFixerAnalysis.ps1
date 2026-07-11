@@ -182,14 +182,14 @@ function Invoke-PSFixerAnalysis {
             New-PSFixerHtmlReport -Inventory $Inventory -Findings $findings | Set-Content -Path $reportPath -Encoding UTF8
 
             $reportUri = "file:///$($reportPath -replace '\\', '/')"
-            Write-Host "PSFixer-rapport: $reportUri" -ForegroundColor Cyan
+            Write-Host (Get-PSFixerString -Key 'Analysis.ReportWritten' -FormatArgs @($reportUri)) -ForegroundColor Cyan
 
             if (-not $NoOpenReport) {
                 try {
                     Start-Process -FilePath $reportPath -ErrorAction Stop
                 }
                 catch {
-                    Write-Verbose "Kon het rapport niet automatisch openen: $_"
+                    Write-Verbose "Could not open the report automatically: $_"
                 }
             }
         }

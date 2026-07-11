@@ -21,11 +21,11 @@ function Get-PSFixerEditionExecutable {
             if ($candidate -and (Test-Path -Path $candidate)) { return $candidate }
         }
 
-        throw 'PowerShell 7 (pwsh.exe) is niet gevonden op dit systeem.'
+        throw (Get-PSFixerString -Key 'Executable.PS7NotFound')
     }
 
     $candidate = Join-Path -Path $env:WINDIR -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
     if (Test-Path -Path $candidate) { return $candidate }
 
-    throw 'Windows PowerShell 5.1 (powershell.exe) is niet gevonden op dit systeem.'
+    throw (Get-PSFixerString -Key 'Executable.WindowsPowerShellNotFound')
 }

@@ -34,7 +34,7 @@ function New-PSFixerHtmlReport {
     $sortedFindings = @($Findings | Sort-Object { $severityOrder[$_.Severity] }, Category)
 
     $rows = if ($sortedFindings.Count -eq 0) {
-        '<tr><td colspan="4" class="empty-state">Geen bevindingen &mdash; de omgeving voldoet aan alle gecontroleerde criteria.</td></tr>'
+        "<tr><td colspan=`"4`" class=`"empty-state`">$(Get-PSFixerString -Key 'HtmlReport.EmptyState')</td></tr>"
     }
     else {
         ($sortedFindings | ForEach-Object {
@@ -56,13 +56,27 @@ function New-PSFixerHtmlReport {
     $psVersionCount = @($Inventory.PowerShellVersions).Count
     $computerName = ConvertTo-PSFixerHtmlSafeText $env:COMPUTERNAME
 
+    $langCode = Get-PSFixerString -Key 'HtmlReport.LangCode'
+    $pageTitle = Get-PSFixerString -Key 'HtmlReport.PageTitle' -FormatArgs @($computerName)
+    $heading = Get-PSFixerString -Key 'HtmlReport.Heading'
+    $generatedOn = Get-PSFixerString -Key 'HtmlReport.GeneratedOn' -FormatArgs @($generated.ToString('dd-MM-yyyy HH:mm'))
+    $versionLabel = Get-PSFixerString -Key 'HtmlReport.VersionLabel' -FormatArgs @((ConvertTo-PSFixerHtmlSafeText $version))
+    $modulesFoundLabel = Get-PSFixerString -Key 'HtmlReport.ModulesFoundLabel' -FormatArgs @($moduleCount)
+    $repositoriesLabel = Get-PSFixerString -Key 'HtmlReport.RepositoriesLabel' -FormatArgs @($repoCount)
+    $psVersionsLabel = Get-PSFixerString -Key 'HtmlReport.PowerShellVersionsLabel' -FormatArgs @($psVersionCount)
+    $columnSeverity = Get-PSFixerString -Key 'HtmlReport.ColumnSeverity'
+    $columnCategory = Get-PSFixerString -Key 'HtmlReport.ColumnCategory'
+    $columnMessage = Get-PSFixerString -Key 'HtmlReport.ColumnMessage'
+    $columnRecommendation = Get-PSFixerString -Key 'HtmlReport.ColumnRecommendation'
+    $footer = Get-PSFixerString -Key 'HtmlReport.Footer' -FormatArgs @((ConvertTo-PSFixerHtmlSafeText $version), $generated.ToString('o'))
+
     @"
 <!doctype html>
-<html lang="nl">
+<html lang="$langCode">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PSFixer analyserapport - $computerName</title>
+<title>$pageTitle</title>
 <style>
   :root {
     --surface-1: #fcfcfb;
@@ -134,14 +148,14 @@ function New-PSFixerHtmlReport {
 <body>
 <div class="wrap">
   <header>
-    <h1>PSFixer analyserapport</h1>
-    <p>$computerName &middot; gegenereerd op $($generated.ToString('dd-MM-yyyy HH:mm'))</p>
+    <h1>$heading</h1>
+    <p>$computerName &middot; $generatedOn</p>
   </header>
   <div class="meta">
-    <span>PSFixer versie: $(ConvertTo-PSFixerHtmlSafeText $version)</span>
-    <span>Modules gevonden: $moduleCount</span>
-    <span>Repositories: $repoCount</span>
-    <span>PowerShell-versies: $psVersionCount</span>
+    <span>$versionLabel</span>
+    <span>$modulesFoundLabel</span>
+    <span>$repositoriesLabel</span>
+    <span>$psVersionsLabel</span>
   </div>
   <div class="tiles">
     <div class="tile critical"><div class="value">$($critical.Count)</div><div class="label">Critical</div></div>
@@ -150,13 +164,13 @@ function New-PSFixerHtmlReport {
   </div>
   <table>
     <thead>
-      <tr><th>Ernst</th><th>Categorie</th><th>Wat is er aan de hand</th><th>Aanbevolen actie</th></tr>
+      <tr><th>$columnSeverity</th><th>$columnCategory</th><th>$columnMessage</th><th>$columnRecommendation</th></tr>
     </thead>
     <tbody>
       $rows
     </tbody>
   </table>
-  <footer>Gegenereerd door PSFixer $(ConvertTo-PSFixerHtmlSafeText $version) op $($generated.ToString('o'))</footer>
+  <footer>$footer</footer>
 </div>
 </body>
 </html>

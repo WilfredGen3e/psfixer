@@ -17,7 +17,7 @@ function Read-PSFixerModuleSelection {
     $indexed = [System.Collections.Generic.List[pscustomobject]]::new()
 
     Write-Host ''
-    Write-Host 'Beschikbare modules:' -ForegroundColor Cyan
+    Write-Host (Get-PSFixerString -Key 'ModuleSelection.Header') -ForegroundColor Cyan
     foreach ($category in $Catalog.Keys) {
         Write-Host ''
         Write-Host $category -ForegroundColor Yellow
@@ -31,12 +31,12 @@ function Read-PSFixerModuleSelection {
     Write-Host ''
 
     try {
-        $selection = Read-Host -Prompt "Typ de nummers van de modules die je wilt installeren, gescheiden door komma's (bijv. 1,3,5)"
+        $selection = Read-Host -Prompt (Get-PSFixerString -Key 'ModuleSelection.Prompt')
     }
     catch {
         # Read-Host can still fail even when Test-PSFixerInteractive says yes (host
         # quirks) - fall back to "nothing selected" rather than crashing.
-        Write-Verbose "Kon niet interactief om een modulekeuze vragen: $_. Geen modules geselecteerd."
+        Write-Verbose "Could not interactively ask for a module selection: $_. No modules selected."
         return @()
     }
 

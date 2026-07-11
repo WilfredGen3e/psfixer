@@ -137,7 +137,7 @@ Describe 'Invoke-PSFixerAnalysis HTML report' {
             param($fakeInventory)
             $html = New-PSFixerHtmlReport -Inventory $fakeInventory -Findings @()
             $html | Should -Match '<!doctype html>'
-            $html | Should -Match 'Geen bevindingen'
+            $html | Should -Match 'No findings'
         }
     }
 
@@ -566,7 +566,7 @@ Describe 'Repair-PSFixer parameter mode' {
             Mock Test-PSFixerInteractive { $false }
             Mock Invoke-PSFixerInteractiveMenu { }
 
-            { Repair-PSFixer } | Should -Throw '*interactieve sessie*'
+            { Repair-PSFixer } | Should -Throw '*interactive session*'
             Should -Invoke Invoke-PSFixerInteractiveMenu -Times 0
         }
     }
@@ -665,7 +665,7 @@ Describe 'Invoke-PSFixerInteractiveMenu' {
     It 'throws a clear error in a non-interactive session' {
         InModuleScope PSFixer {
             Mock Test-PSFixerInteractive { $false }
-            { Invoke-PSFixerInteractiveMenu } | Should -Throw '*interactieve sessie*'
+            { Invoke-PSFixerInteractiveMenu } | Should -Throw '*interactive session*'
         }
     }
 
@@ -701,13 +701,13 @@ Describe 'Invoke-PSFixerInteractiveMenu' {
             Mock Install-PSFixerProfile { }
             Mock Get-PSFixerLatestSnapshot { $null }
 
-            # Beantwoordt elke vraag op basis van een unieke substring in de prompttekst,
-            # ongeacht de exacte volgorde waarin Invoke-PSFixerInteractiveMenu ze stelt.
-            Mock Read-Host { 'J' } -ParameterFilter { $Prompt -like '*oplossen*' }
-            Mock Read-Host { '3' } -ParameterFilter { $Prompt -like '*Keuze*' }
-            Mock Read-Host { '1' } -ParameterFilter { $Prompt -like '*profiel installeren*' }
+            # Answers each question based on a unique substring of the (English-default)
+            # prompt text, regardless of the exact order Invoke-PSFixerInteractiveMenu asks them in.
+            Mock Read-Host { 'Y' } -ParameterFilter { $Prompt -like '*fix*' }
+            Mock Read-Host { '3' } -ParameterFilter { $Prompt -like '*Choice*' }
+            Mock Read-Host { '1' } -ParameterFilter { $Prompt -like '*install/update a profile*' }
             Mock Read-Host { 'n' } -ParameterFilter { $Prompt -like '*preview*' }
-            Mock Read-Host { 'j' } -ParameterFilter { $Prompt -like '*Doorgaan?*' }
+            Mock Read-Host { 'y' } -ParameterFilter { $Prompt -like '*Continue?*' }
 
             Invoke-PSFixerInteractiveMenu
 
@@ -733,13 +733,99 @@ Describe 'Invoke-PSFixerInteractiveMenu' {
             Mock Reset-PSFixerEnvironment { }
             Mock Install-PSFixerProfile { }
 
-            Mock Read-Host { 'S' } -ParameterFilter { $Prompt -like '*oplossen*' }
-            Mock Read-Host { '' } -ParameterFilter { $Prompt -like '*profiel installeren*' }
+            Mock Read-Host { 'S' } -ParameterFilter { $Prompt -like '*fix*' }
+            Mock Read-Host { '' } -ParameterFilter { $Prompt -like '*install/update a profile*' }
 
             Invoke-PSFixerInteractiveMenu
 
             Should -Invoke Reset-PSFixerEnvironment -Times 0
             Should -Invoke Install-PSFixerProfile -Times 0
+        }
+    }
+
+    It 'asks and answers in Dutch once Set-PSFixerLanguage nl is set, and resets to English afterward' {
+        InModuleScope PSFixer {
+            $originalLanguage = $script:PSFixerLanguage
+            $originalTemp = $env:TEMP
+            if (-not $env:TEMP) { $env:TEMP = [System.IO.Path]::GetTempPath() }
+
+            try {
+                Set-PSFixerLanguage -Language nl
+
+                Mock Test-PSFixerInteractive { $true }
+                Mock Get-PSFixerInventory {
+                    [pscustomobject]@{ PSTypeName = 'PSFixer.Inventory'; PowerShellVersions = @([pscustomobject]@{ Edition = 'Core'; Version = [version]'7.4.0' }) }
+                }
+                Mock Invoke-PSFixerAnalysis {
+                    @([pscustomobject]@{ PSTypeName = 'PSFixer.Finding'; Category = 'Repository'; Message = 'untrusted' })
+                }
+                Mock Get-PSFixerProfileDefinition { @{ TestProfile = [pscustomobject]@{ Description = 'Test profile'; Modules = @() } } }
+                Mock Reset-PSFixerEnvironment { }
+                Mock Install-PSFixerProfile { }
+                Mock Get-PSFixerLatestSnapshot { $null }
+
+                # Same scenario as the English test above, but every prompt is now the Dutch string.
+                Mock Read-Host { 'J' } -ParameterFilter { $Prompt -like '*oplossen*' }
+                Mock Read-Host { '' } -ParameterFilter { $Prompt -like '*profiel installeren*' }
+                Mock Read-Host { 'n' } -ParameterFilter { $Prompt -like '*preview*' }
+                Mock Read-Host { 'j' } -ParameterFilter { $Prompt -like '*Doorgaan?*' }
+
+                Invoke-PSFixerInteractiveMenu
+
+                Should -Invoke Reset-PSFixerEnvironment -Times 1 -ParameterFilter { $Scope -contains 'Repositories' -and $Confirm -eq $false }
+            }
+            finally {
+                $script:PSFixerLanguage = $originalLanguage
+                $env:TEMP = $originalTemp
+            }
+
+            Get-PSFixerString -Key 'Menu.Done' | Should -Be 'Done.'
+        }
+    }
+}
+
+Describe 'Get-PSFixerString / Set-PSFixerLanguage' {
+    AfterEach {
+        InModuleScope PSFixer { $script:PSFixerLanguage = 'en' }
+    }
+
+    It 'defaults to English' {
+        InModuleScope PSFixer {
+            Get-PSFixerString -Key 'Menu.Done' | Should -Be 'Done.'
+        }
+    }
+
+    It 'switches to Dutch after Set-PSFixerLanguage nl' {
+        InModuleScope PSFixer {
+            Set-PSFixerLanguage -Language nl
+            Get-PSFixerString -Key 'Menu.Done' | Should -Be 'Klaar.'
+        }
+    }
+
+    It 'rejects an unsupported language' {
+        { Set-PSFixerLanguage -Language de } | Should -Throw
+    }
+
+    It 'formats placeholders with -FormatArgs' {
+        InModuleScope PSFixer {
+            Get-PSFixerString -Key 'Snapshot.Restored' -FormatArgs @('Az.Accounts 3.0.0') | Should -Be 'Restored: Az.Accounts 3.0.0'
+        }
+    }
+
+    It 'still substitutes a single falsy -FormatArgs value instead of leaving a literal {0}' {
+        # Regression: PowerShell treats a single-element array as falsy when that one
+        # element is itself falsy (empty string, 0, $false) - "if ($FormatArgs)" would
+        # wrongly skip formatting for exactly this case (e.g. an empty computer name in
+        # the HTML report title). Must check $PSBoundParameters instead.
+        InModuleScope PSFixer {
+            Get-PSFixerString -Key 'HtmlReport.PageTitle' -FormatArgs @('') | Should -Be 'PSFixer analysis report - '
+            Get-PSFixerString -Key 'HtmlReport.ModulesFoundLabel' -FormatArgs @(0) | Should -Be 'Modules found: 0'
+        }
+    }
+
+    It 'throws a clear error for an unknown key' {
+        InModuleScope PSFixer {
+            { Get-PSFixerString -Key 'Does.Not.Exist' } | Should -Throw "*Does.Not.Exist*"
         }
     }
 }
@@ -748,7 +834,7 @@ Describe 'Show-PSFixerCatalog' {
     It 'throws a clear error in a non-interactive session' {
         InModuleScope PSFixer {
             Mock Test-PSFixerInteractive { $false }
-            { Show-PSFixerCatalog } | Should -Throw '*interactieve sessie*'
+            { Show-PSFixerCatalog } | Should -Throw '*interactive session*'
         }
     }
 

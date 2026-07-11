@@ -25,13 +25,13 @@ function Restore-PSFixerSnapshot {
         $snapshotDir = Join-Path -Path $env:TEMP -ChildPath 'PSFixer'
         $latest = Get-PSFixerLatestSnapshot -SnapshotPath $snapshotDir
         if (-not $latest) {
-            throw "Geen snapshot gevonden onder '$snapshotDir'. Geef -SnapshotPath expliciet op."
+            throw (Get-PSFixerString -Key 'Snapshot.NotFound' -FormatArgs @($snapshotDir))
         }
         $SnapshotPath = $latest.FullName
     }
 
     if (-not (Test-Path -Path $SnapshotPath)) {
-        throw "Snapshot '$SnapshotPath' bestaat niet."
+        throw (Get-PSFixerString -Key 'Snapshot.PathNotFound' -FormatArgs @($SnapshotPath))
     }
 
     function ConvertTo-PSFixerVersionObject {
@@ -64,20 +64,20 @@ function Restore-PSFixerSnapshot {
     }
 
     if (-not $toRestore) {
-        Write-Host 'Niets te herstellen: alle module(versie)s uit het snapshot staan nog op dit systeem.' -ForegroundColor Green
+        Write-Host (Get-PSFixerString -Key 'Snapshot.NothingToRestore') -ForegroundColor Green
         return
     }
 
     foreach ($entry in $toRestore) {
         $scope = if ($entry.Scope -like 'AllUsers*') { 'AllUsers' } else { 'CurrentUser' }
         $target = "$($entry.Name) $($entry.Version) (Scope=$scope)"
-        if ($PSCmdlet.ShouldProcess($target, 'Herinstalleren vanuit snapshot')) {
+        if ($PSCmdlet.ShouldProcess($target, (Get-PSFixerString -Key 'Snapshot.ShouldProcessAction'))) {
             try {
                 Install-Module -Name $entry.Name -RequiredVersion $entry.Version -Scope $scope -Force -ErrorAction Stop
-                Write-Host "Hersteld: $target" -ForegroundColor Green
+                Write-Host (Get-PSFixerString -Key 'Snapshot.Restored' -FormatArgs @($target)) -ForegroundColor Green
             }
             catch {
-                Write-Warning "Kon $target niet herstellen: $_"
+                Write-Warning (Get-PSFixerString -Key 'Snapshot.RestoreFailed' -FormatArgs @($target, $_))
             }
         }
     }

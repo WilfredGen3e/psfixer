@@ -13,18 +13,18 @@ function Read-PSFixerTargetEdition {
     param()
 
     Write-Host ''
-    Write-Host 'In welke PowerShell-editie wil je dit uitvoeren?' -ForegroundColor Cyan
-    Write-Host '  [1] Alleen PowerShell 7 (aanbevolen)'
-    Write-Host '  [2] Alleen Windows PowerShell 5.1'
-    Write-Host '  [3] Beide'
+    Write-Host (Get-PSFixerString -Key 'TargetEdition.Question') -ForegroundColor Cyan
+    Write-Host (Get-PSFixerString -Key 'TargetEdition.OptionPS7')
+    Write-Host (Get-PSFixerString -Key 'TargetEdition.OptionWindowsPowerShell')
+    Write-Host (Get-PSFixerString -Key 'TargetEdition.OptionBoth')
 
     try {
-        $choice = Read-Host -Prompt 'Keuze [1]'
+        $choice = Read-Host -Prompt (Get-PSFixerString -Key 'TargetEdition.ChoicePrompt')
     }
     catch {
         # Read-Host can still fail even when Test-PSFixerInteractive says yes (host
         # quirks) - fall back to the safe/recommended default rather than crashing.
-        Write-Verbose "Kon niet interactief vragen welke editie: $_. Val terug op PS7."
+        Write-Verbose "Could not interactively ask which edition: $_. Falling back to PS7."
         return 'PS7'
     }
 

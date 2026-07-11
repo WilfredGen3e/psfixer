@@ -10,15 +10,14 @@ function Invoke-PSFixerInteractiveMenu {
         -WhatIf preview, and after confirmation runs
         Reset-PSFixerEnvironment / Install-PSFixerProfile. Meant to be called
         only by Repair-PSFixer, but testable on its own by mocking Read-Host.
-        User-facing prompts are in Dutch, matching the rest of this module's
-        interactive helpers (Read-PSFixerModuleSelection,
-        Read-PSFixerTargetEdition).
+        User-facing prompts go through Get-PSFixerString, so they follow
+        whatever language Set-PSFixerLanguage last set (default English).
     #>
     [CmdletBinding()]
     param()
 
     if (-not (Test-PSFixerInteractive)) {
-        throw 'Repair-PSFixer kan het vragenmenu niet gebruiken in een niet-interactieve sessie. Geef expliciete parameters op (bv. -Scope, -Profile, -WhatIf).'
+        throw (Get-PSFixerString -Key 'Menu.NonInteractiveError')
     }
 
     # Each findings category maps to exactly one Reset-PSFixerEnvironment -Scope.
@@ -33,8 +32,12 @@ function Invoke-PSFixerInteractiveMenu {
         PackageProvider  = 'Providers'
     }
 
+    $yes = Get-PSFixerString -Key 'Common.Yes'
+    $no = Get-PSFixerString -Key 'Common.No'
+    $skip = Get-PSFixerString -Key 'Common.Skip'
+
     Write-Host ''
-    Write-Host 'Diagnose draaien...' -ForegroundColor Cyan
+    Write-Host (Get-PSFixerString -Key 'Menu.RunningDiagnosis') -ForegroundColor Cyan
     $inventory = Get-PSFixerInventory
     $findings = $inventory | Invoke-PSFixerAnalysis -NoReport
 
@@ -44,27 +47,27 @@ function Invoke-PSFixerInteractiveMenu {
     $selectedCategories = [System.Collections.Generic.List[string]]::new()
 
     if ($categories.Count -eq 0) {
-        Write-Host 'Geen problemen gevonden - er hoeft niets opgeruimd te worden.' -ForegroundColor Green
+        Write-Host (Get-PSFixerString -Key 'Menu.NoProblemsFound') -ForegroundColor Green
     }
     else {
         Write-Host ''
-        Write-Host 'Ik heb de volgende problemen gevonden:' -ForegroundColor Cyan
+        Write-Host (Get-PSFixerString -Key 'Menu.ProblemsFoundHeader') -ForegroundColor Cyan
         foreach ($category in $categories) {
-            Write-Host ("  [{0,2}x] {1} - bv. {2}" -f $category.Count, $category.Name, $category.Group[0].Message)
+            Write-Host (Get-PSFixerString -Key 'Menu.ProblemSummaryLine' -FormatArgs @($category.Count, $category.Name, $category.Group[0].Message))
         }
 
-        $fixChoice = Read-PSFixerHostSafe -Prompt '(J)a voor alles oplossen / (N)ee, per categorie kiezen / (S)la over' -Default 'J'
+        $fixChoice = Read-PSFixerHostSafe -Prompt (Get-PSFixerString -Key 'Menu.FixAllPrompt') -Default $yes
 
         switch ($fixChoice.ToUpperInvariant()) {
-            'N' {
+            $no {
                 foreach ($category in $categories) {
-                    $answer = Read-PSFixerHostSafe -Prompt "  $($category.Name) ($($category.Count)x) oplossen? (j/n)" -Default 'J'
-                    if ($answer.ToUpperInvariant() -eq 'J') {
+                    $answer = Read-PSFixerHostSafe -Prompt (Get-PSFixerString -Key 'Menu.FixCategoryPrompt' -FormatArgs @($category.Name, $category.Count)) -Default $yes
+                    if ($answer.ToUpperInvariant() -eq $yes) {
                         $selectedCategories.Add($category.Name)
                     }
                 }
             }
-            'S' {
+            $skip {
                 # nothing selected
             }
             default {
@@ -94,7 +97,7 @@ function Invoke-PSFixerInteractiveMenu {
     }
 
     if ($scopesNeeded.Count -eq 0 -and -not $profileName) {
-        Write-Host 'Niets om te doen.' -ForegroundColor Yellow
+        Write-Host (Get-PSFixerString -Key 'Menu.NothingToDo') -ForegroundColor Yellow
         return
     }
 
@@ -104,7 +107,7 @@ function Invoke-PSFixerInteractiveMenu {
     if ($targetEdition) { $installParams['TargetEdition'] = $targetEdition }
 
     Write-Host ''
-    Write-Host 'Dit ga ik doen:' -ForegroundColor Cyan
+    Write-Host (Get-PSFixerString -Key 'Menu.WillDoHeader') -ForegroundColor Cyan
     if ($scopesNeeded.Count -gt 0) {
         Write-Host "  - Reset-PSFixerEnvironment -Scope $($scopesNeeded -join ',')$(if ($targetEdition) { " -TargetEdition $targetEdition" })"
     }
@@ -113,8 +116,8 @@ function Invoke-PSFixerInteractiveMenu {
     }
 
     $alreadyConfirmed = $false
-    $previewChoice = Read-PSFixerHostSafe -Prompt 'Wil je dit eerst als preview zien (-WhatIf) voordat ik het echt uitvoer? (j/n)' -Default 'N'
-    if ($previewChoice.ToUpperInvariant() -eq 'J') {
+    $previewChoice = Read-PSFixerHostSafe -Prompt (Get-PSFixerString -Key 'Menu.PreviewPrompt') -Default $no
+    if ($previewChoice.ToUpperInvariant() -eq $yes) {
         if ($scopesNeeded.Count -gt 0) {
             Reset-PSFixerEnvironment @resetParams -WhatIf
         }
@@ -122,18 +125,18 @@ function Invoke-PSFixerInteractiveMenu {
             Install-PSFixerProfile @installParams -WhatIf
         }
 
-        $continueChoice = Read-PSFixerHostSafe -Prompt 'Doorgaan met de echte uitvoering? (j/n)' -Default 'N'
-        if ($continueChoice.ToUpperInvariant() -ne 'J') {
-            Write-Host 'Geannuleerd.' -ForegroundColor Yellow
+        $continueChoice = Read-PSFixerHostSafe -Prompt (Get-PSFixerString -Key 'Menu.ContinueForRealPrompt') -Default $no
+        if ($continueChoice.ToUpperInvariant() -ne $yes) {
+            Write-Host (Get-PSFixerString -Key 'Menu.Cancelled') -ForegroundColor Yellow
             return
         }
         $alreadyConfirmed = $true
     }
 
     if (-not $alreadyConfirmed) {
-        $confirmChoice = Read-PSFixerHostSafe -Prompt 'Doorgaan? (j/n)' -Default 'N'
-        if ($confirmChoice.ToUpperInvariant() -ne 'J') {
-            Write-Host 'Geannuleerd.' -ForegroundColor Yellow
+        $confirmChoice = Read-PSFixerHostSafe -Prompt (Get-PSFixerString -Key 'Menu.ContinuePrompt') -Default $no
+        if ($confirmChoice.ToUpperInvariant() -ne $yes) {
+            Write-Host (Get-PSFixerString -Key 'Menu.Cancelled') -ForegroundColor Yellow
             return
         }
     }
@@ -153,9 +156,9 @@ function Invoke-PSFixerInteractiveMenu {
         $snapshotDir = Join-Path -Path $env:TEMP -ChildPath 'PSFixer'
         $snapshot = Get-PSFixerLatestSnapshot -SnapshotPath $snapshotDir
         if ($snapshot) {
-            Write-Host "Snapshot voor rollback: $($snapshot.FullName)" -ForegroundColor Cyan
-            Write-Host "Terugdraaien kan met: Restore-PSFixerSnapshot -SnapshotPath '$($snapshot.FullName)' (of Repair-PSFixer -Rollback)"
+            Write-Host (Get-PSFixerString -Key 'Menu.SnapshotForRollback' -FormatArgs @($snapshot.FullName)) -ForegroundColor Cyan
+            Write-Host (Get-PSFixerString -Key 'Menu.RollbackHint' -FormatArgs @($snapshot.FullName))
         }
     }
-    Write-Host 'Klaar.' -ForegroundColor Green
+    Write-Host (Get-PSFixerString -Key 'Menu.Done') -ForegroundColor Green
 }

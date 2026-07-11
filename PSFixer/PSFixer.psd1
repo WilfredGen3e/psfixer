@@ -4,7 +4,7 @@
     GUID                  = '7793cad2-78b4-4ad4-ac95-6e8ba0112bd0'
     Author                = 'Stefan Siemerink'
     CompanyName            = 'Unknown'
-    Copyright              = '(c) Stefan Siemerink. All rights reserved.'
+    Copyright              = '(c) 2026 Stefan Siemerink. Licensed under the MIT License.'
     Description           = 'Diagnose, repair, and baseline framework for PowerShell administration workstations.'
     PowerShellVersion     = '5.1'
     CompatiblePSEditions  = @('Desktop', 'Core')
@@ -13,6 +13,7 @@
         'Test-PSFixer'
         'Repair-PSFixer'
         'Show-PSFixerCatalog'
+        'Set-PSFixerLanguage'
         'Get-PSFixerInventory'
         'Get-PSFixerModule'
         'Get-PSFixerRepository'
@@ -34,8 +35,8 @@
     PrivateData = @{
         PSData = @{
             Tags         = @('PowerShell', 'Modules', 'Diagnostics', 'M365', 'Azure', 'Baseline')
-            ProjectUri   = ''
-            LicenseUri   = ''
+            ProjectUri   = 'https://github.com/WilfredGen3e/psfixer'
+            LicenseUri   = 'https://github.com/WilfredGen3e/psfixer/blob/main/LICENSE'
             ReleaseNotes = 'Import failures after Install-PSFixerProfile/Install-PSFixerModule now surface as a warning instead of being silently swallowed.'
         }
     }

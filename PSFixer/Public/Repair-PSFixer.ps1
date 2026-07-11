@@ -93,7 +93,7 @@ function Repair-PSFixer {
 
     if ($PSBoundParameters.Count -eq 0) {
         if (-not (Test-PSFixerInteractive)) {
-            throw 'Repair-PSFixer heeft zonder parameters een interactieve sessie nodig voor het vragenmenu. Geef expliciete parameters op (bv. -Scope, -Profile, -WhatIf) voor non-interactief/scriptgebruik.'
+            throw (Get-PSFixerString -Key 'Repair.NonInteractiveError')
         }
         Invoke-PSFixerInteractiveMenu
         return
