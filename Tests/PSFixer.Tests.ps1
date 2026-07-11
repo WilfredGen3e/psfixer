@@ -528,7 +528,7 @@ Describe 'Update-PSFixerModule' {
             Mock Invoke-RestMethod { 'param($Repo, $Branch) $script:capturedArgs = @($Repo, $Branch)' }
             Update-PSFixerModule -Confirm:$false
             Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter {
-                $Uri -eq 'https://raw.githubusercontent.com/WilfredGen3e/psfixer/main/Install-PSFixer.ps1'
+                $Uri -eq 'https://raw.githubusercontent.com/WilfredGen3e/psfixer/main/install.ps1'
             }
         }
     }

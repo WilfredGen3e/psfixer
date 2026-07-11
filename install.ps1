@@ -12,7 +12,7 @@
 .PARAMETER Branch
     Branch to install from.
 .EXAMPLE
-    irm https://raw.githubusercontent.com/WilfredGen3e/psfixer/main/Install-PSFixer.ps1 | iex
+    irm https://wilfredgen3e.github.io/psfixer/install.ps1 | iex
 #>
 [CmdletBinding()]
 param(

@@ -22,7 +22,7 @@ docs/
 No PSGallery/PowerShellGet dependency, no admin rights required — installs to the CurrentUser module path:
 
 ```powershell
-irm https://raw.githubusercontent.com/WilfredGen3e/psfixer/main/Install-PSFixer.ps1 | iex
+irm https://wilfredgen3e.github.io/psfixer/install.ps1 | iex
 ```
 
 This always pulls the latest commit on `main`, replaces any existing CurrentUser install, imports the module, and prints the available commands. Re-run the same line any time to update. Check the installed version with `Get-PSFixerVersion`.
@@ -33,7 +33,7 @@ Once installed, you can also update from within an already-loaded session — no
 Update-PSFixerModule
 ```
 
-This downloads and re-runs the same `Install-PSFixer.ps1` bootstrap script, so both paths share a single source of truth.
+This downloads and re-runs the same `install.ps1` bootstrap script, so both paths share a single source of truth. (`Update-PSFixerModule` itself fetches from `raw.githubusercontent.com` rather than the Pages URL, since it also supports pointing at a fork via `-Repo`/`-Branch`, which may not have Pages enabled.)
 
 ## Quick start
 
