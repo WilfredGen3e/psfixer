@@ -9,7 +9,7 @@ function Get-PSFixerManagedModuleKeys {
         Get-Module -ListAvailable but were never "installed" via Install-Module/
         Install-PSResource, so the package manager cannot remove them and they
         are not something a user can act on. This set is used to filter those
-        out of duplicate/multiple-version findings (ANA-01/ANA-02) by default.
+        out of duplicate/multiple-version findings by default.
     #>
     [CmdletBinding()]
     [OutputType([System.Collections.Generic.HashSet[string]])]

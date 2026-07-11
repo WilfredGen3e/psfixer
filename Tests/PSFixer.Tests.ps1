@@ -160,6 +160,22 @@ Describe 'Invoke-PSFixerAnalysis HTML report' {
     }
 }
 
+Describe 'Get-PSFixerProfileDefinition built-in profiles' {
+    It 'defines all five built-in profiles (PRO-01/02/03) with a description and at least one module' {
+        InModuleScope PSFixer {
+            $profiles = Get-PSFixerProfileDefinition
+            $profiles.Keys | Sort-Object | Should -Be @('AzureEngineer', 'Helpdesk', 'IntuneAdmin', 'M365Admin', 'SecurityConsultant')
+            foreach ($name in $profiles.Keys) {
+                $profiles[$name].Description | Should -Not -BeNullOrEmpty -Because "$name needs a Description"
+                @($profiles[$name].Modules).Count | Should -BeGreaterThan 0 -Because "$name needs at least one module"
+                foreach ($module in $profiles[$name].Modules) {
+                    $module.Name | Should -Not -BeNullOrEmpty -Because "every module entry in $name needs a Name"
+                }
+            }
+        }
+    }
+}
+
 Describe 'Install-PSFixerProfile' {
     It 'throws a clear error for an unknown profile name' {
         { Install-PSFixerProfile -Name 'DoesNotExist' -WhatIf } | Should -Throw "*DoesNotExist*"
@@ -514,6 +530,256 @@ Describe 'Update-PSFixerModule' {
             Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter {
                 $Uri -eq 'https://raw.githubusercontent.com/WilfredGen3e/psfixer/main/Install-PSFixer.ps1'
             }
+        }
+    }
+}
+
+Describe 'Test-PSFixer' {
+    It 'pipes a fresh inventory into Invoke-PSFixerAnalysis and passes all switches through' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerInventory { [pscustomobject]@{ PSTypeName = 'PSFixer.Inventory' } }
+            Mock Invoke-PSFixerAnalysis { }
+
+            Test-PSFixer -Online -NoReport -NoOpenReport -IncludeUnmanaged
+
+            Should -Invoke Get-PSFixerInventory -Times 1
+            Should -Invoke Invoke-PSFixerAnalysis -Times 1 -ParameterFilter {
+                $Online -eq $true -and $NoReport -eq $true -and $NoOpenReport -eq $true -and $IncludeUnmanaged -eq $true
+            }
+        }
+    }
+
+    It 'returns the findings Invoke-PSFixerAnalysis produces' {
+        InModuleScope PSFixer {
+            Mock Get-PSFixerInventory { [pscustomobject]@{ PSTypeName = 'PSFixer.Inventory' } }
+            Mock Invoke-PSFixerAnalysis { [pscustomobject]@{ PSTypeName = 'PSFixer.Finding'; Category = 'Repository' } }
+
+            $result = Test-PSFixer -NoReport
+            $result.Category | Should -Be 'Repository'
+        }
+    }
+}
+
+Describe 'Repair-PSFixer parameter mode' {
+    It 'throws a clear, non-hanging error with no parameters in a non-interactive session' {
+        InModuleScope PSFixer {
+            Mock Test-PSFixerInteractive { $false }
+            Mock Invoke-PSFixerInteractiveMenu { }
+
+            { Repair-PSFixer } | Should -Throw '*interactieve sessie*'
+            Should -Invoke Invoke-PSFixerInteractiveMenu -Times 0
+        }
+    }
+
+    It 'launches the interactive menu with no parameters in an interactive session' {
+        InModuleScope PSFixer {
+            Mock Test-PSFixerInteractive { $true }
+            Mock Invoke-PSFixerInteractiveMenu { }
+
+            Repair-PSFixer
+
+            Should -Invoke Invoke-PSFixerInteractiveMenu -Times 1
+        }
+    }
+
+    It 'defaults to a full cleanup (Scope=All) when only -WhatIf is given' {
+        InModuleScope PSFixer {
+            Mock Reset-PSFixerEnvironment { }
+
+            Repair-PSFixer -WhatIf
+
+            Should -Invoke Reset-PSFixerEnvironment -Times 1 -ParameterFilter {
+                $Scope -eq 'All' -and $WhatIf -eq $true
+            }
+        }
+    }
+
+    It 'passes -WhatIf through to Reset-PSFixerEnvironment for a scoped cleanup' {
+        InModuleScope PSFixer {
+            Mock Reset-PSFixerEnvironment { }
+
+            Repair-PSFixer -Scope Modules -WhatIf
+
+            Should -Invoke Reset-PSFixerEnvironment -Times 1 -ParameterFilter {
+                $Scope -eq 'Modules' -and $WhatIf -eq $true
+            }
+        }
+    }
+
+    It 'installs a profile without any cleanup when only -Profile is given' {
+        InModuleScope PSFixer {
+            Mock Reset-PSFixerEnvironment { }
+            Mock Install-PSFixerProfile { }
+
+            Repair-PSFixer -Profile M365Admin -TargetEdition PS7 -Confirm:$false
+
+            Should -Invoke Reset-PSFixerEnvironment -Times 0
+            Should -Invoke Install-PSFixerProfile -Times 1 -ParameterFilter {
+                $Name -eq 'M365Admin' -and $TargetEdition -eq 'PS7'
+            }
+        }
+    }
+
+    It 'runs cleanup and a profile install together when -Scope and -Profile are both given' {
+        InModuleScope PSFixer {
+            Mock Reset-PSFixerEnvironment { }
+            Mock Install-PSFixerProfile { }
+
+            Repair-PSFixer -Scope Modules -Profile M365Admin -Confirm:$false
+
+            Should -Invoke Reset-PSFixerEnvironment -Times 1 -ParameterFilter { $Scope -eq 'Modules' }
+            Should -Invoke Install-PSFixerProfile -Times 1 -ParameterFilter { $Name -eq 'M365Admin' }
+        }
+    }
+
+    It 'also applies the baseline when -Baseline is given' {
+        InModuleScope PSFixer {
+            Mock Reset-PSFixerEnvironment { }
+            Mock Set-PSFixerBaseline { }
+
+            Repair-PSFixer -Baseline -Confirm:$false
+
+            Should -Invoke Reset-PSFixerEnvironment -Times 0
+            Should -Invoke Set-PSFixerBaseline -Times 1
+        }
+    }
+
+    It 'delegates -Rollback to Restore-PSFixerSnapshot' {
+        InModuleScope PSFixer {
+            Mock Restore-PSFixerSnapshot { }
+
+            Repair-PSFixer -Rollback -SnapshotPath 'C:\snap.json' -WhatIf
+
+            Should -Invoke Restore-PSFixerSnapshot -Times 1 -ParameterFilter {
+                $SnapshotPath -eq 'C:\snap.json' -and $WhatIf -eq $true
+            }
+        }
+    }
+
+    It 'rejects combining -Rollback with -Scope' {
+        { Repair-PSFixer -Rollback -Scope Modules } | Should -Throw
+    }
+}
+
+Describe 'Invoke-PSFixerInteractiveMenu' {
+    It 'throws a clear error in a non-interactive session' {
+        InModuleScope PSFixer {
+            Mock Test-PSFixerInteractive { $false }
+            { Invoke-PSFixerInteractiveMenu } | Should -Throw '*interactieve sessie*'
+        }
+    }
+
+    It 'resolves answers via Read-Host and calls Reset-PSFixerEnvironment / Install-PSFixerProfile with the right parameters' {
+        InModuleScope PSFixer {
+            # $env:TEMP is a Windows-only env var; the final snapshot-path lookup needs *some*
+            # value here. On a real Windows host it's already set - this only backfills it for
+            # cross-platform test runs (macOS/Linux), it does not change production behavior.
+            $originalTemp = $env:TEMP
+            if (-not $env:TEMP) { $env:TEMP = [System.IO.Path]::GetTempPath() }
+
+            Mock Test-PSFixerInteractive { $true }
+
+            Mock Get-PSFixerInventory {
+                [pscustomobject]@{
+                    PSTypeName         = 'PSFixer.Inventory'
+                    PowerShellVersions = @(
+                        [pscustomobject]@{ Edition = 'Core'; Version = [version]'7.4.0' }
+                        [pscustomobject]@{ Edition = 'Desktop'; Version = [version]'5.1.0' }
+                    )
+                }
+            }
+            Mock Invoke-PSFixerAnalysis {
+                @(
+                    [pscustomobject]@{ PSTypeName = 'PSFixer.Finding'; Category = 'DuplicateModule'; Message = 'dup' }
+                    [pscustomobject]@{ PSTypeName = 'PSFixer.Finding'; Category = 'Repository'; Message = 'untrusted' }
+                )
+            }
+            Mock Get-PSFixerProfileDefinition {
+                @{ TestProfile = [pscustomobject]@{ Description = 'Test profile'; Modules = @() } }
+            }
+            Mock Reset-PSFixerEnvironment { }
+            Mock Install-PSFixerProfile { }
+            Mock Get-PSFixerLatestSnapshot { $null }
+
+            # Beantwoordt elke vraag op basis van een unieke substring in de prompttekst,
+            # ongeacht de exacte volgorde waarin Invoke-PSFixerInteractiveMenu ze stelt.
+            Mock Read-Host { 'J' } -ParameterFilter { $Prompt -like '*oplossen*' }
+            Mock Read-Host { '3' } -ParameterFilter { $Prompt -like '*Keuze*' }
+            Mock Read-Host { '1' } -ParameterFilter { $Prompt -like '*profiel installeren*' }
+            Mock Read-Host { 'n' } -ParameterFilter { $Prompt -like '*preview*' }
+            Mock Read-Host { 'j' } -ParameterFilter { $Prompt -like '*Doorgaan?*' }
+
+            Invoke-PSFixerInteractiveMenu
+
+            Should -Invoke Reset-PSFixerEnvironment -Times 1 -ParameterFilter {
+                ($Scope -contains 'Modules') -and ($Scope -contains 'Repositories') -and $TargetEdition -eq 'Both' -and $Confirm -eq $false
+            }
+            Should -Invoke Install-PSFixerProfile -Times 1 -ParameterFilter {
+                $Name -eq 'TestProfile' -and $TargetEdition -eq 'Both' -and $Confirm -eq $false
+            }
+
+            $env:TEMP = $originalTemp
+        }
+    }
+
+    It 'does nothing and does not prompt for confirmation when everything is skipped' {
+        InModuleScope PSFixer {
+            Mock Test-PSFixerInteractive { $true }
+            Mock Get-PSFixerInventory { [pscustomobject]@{ PSTypeName = 'PSFixer.Inventory'; PowerShellVersions = @() } }
+            Mock Invoke-PSFixerAnalysis {
+                @([pscustomobject]@{ PSTypeName = 'PSFixer.Finding'; Category = 'DuplicateModule'; Message = 'dup' })
+            }
+            Mock Get-PSFixerProfileDefinition { @{ TestProfile = [pscustomobject]@{ Description = 'Test profile'; Modules = @() } } }
+            Mock Reset-PSFixerEnvironment { }
+            Mock Install-PSFixerProfile { }
+
+            Mock Read-Host { 'S' } -ParameterFilter { $Prompt -like '*oplossen*' }
+            Mock Read-Host { '' } -ParameterFilter { $Prompt -like '*profiel installeren*' }
+
+            Invoke-PSFixerInteractiveMenu
+
+            Should -Invoke Reset-PSFixerEnvironment -Times 0
+            Should -Invoke Install-PSFixerProfile -Times 0
+        }
+    }
+}
+
+Describe 'Show-PSFixerCatalog' {
+    It 'throws a clear error in a non-interactive session' {
+        InModuleScope PSFixer {
+            Mock Test-PSFixerInteractive { $false }
+            { Show-PSFixerCatalog } | Should -Throw '*interactieve sessie*'
+        }
+    }
+
+    It 'installs the chosen profile and modules with the given scope/edition' {
+        InModuleScope PSFixer {
+            Mock Test-PSFixerInteractive { $true }
+            Mock Get-PSFixerProfileDefinition { @{ TestProfile = [pscustomobject]@{ Description = 'Test profile'; Modules = @() } } }
+            Mock Read-PSFixerProfileSelection { 'TestProfile' }
+            Mock Read-PSFixerModuleSelection { @('Pester') }
+            Mock Install-PSFixerProfile { }
+            Mock Install-PSFixerModule { }
+
+            Show-PSFixerCatalog -TargetEdition PS7 -Confirm:$false
+
+            Should -Invoke Install-PSFixerProfile -Times 1 -ParameterFilter { $Name -eq 'TestProfile' -and $TargetEdition -eq 'PS7' }
+            Should -Invoke Install-PSFixerModule -Times 1 -ParameterFilter { $Name -eq @('Pester') -and $TargetEdition -eq 'PS7' }
+        }
+    }
+
+    It 'does nothing when both the profile and module picks are empty' {
+        InModuleScope PSFixer {
+            Mock Test-PSFixerInteractive { $true }
+            Mock Read-PSFixerProfileSelection { $null }
+            Mock Read-PSFixerModuleSelection { @() }
+            Mock Install-PSFixerProfile { }
+            Mock Install-PSFixerModule { }
+
+            Show-PSFixerCatalog
+
+            Should -Invoke Install-PSFixerProfile -Times 0
+            Should -Invoke Install-PSFixerModule -Times 0
         }
     }
 }

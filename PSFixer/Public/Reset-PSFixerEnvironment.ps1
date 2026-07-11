@@ -1,22 +1,22 @@
 function Reset-PSFixerEnvironment {
     <#
     .SYNOPSIS
-        Cleans up the local PowerShell environment back to a healthy state (§5.3).
+        Cleans up the local PowerShell environment back to a healthy state.
     .DESCRIPTION
         Removes duplicate/old module versions, reconfigures repositories, and
         updates package providers, depending on -Scope. Every destructive action
-        goes through ShouldProcess (HER-05); a snapshot of the current inventory
-        is written before any change is made (HER-06); actions are logged (HER-08).
+        goes through ShouldProcess; a snapshot of the current inventory
+        is written before any change is made; actions are logged.
     .PARAMETER Scope
         Which part(s) of the environment to reset. Defaults to All.
     .PARAMETER KeepVersion
         For modules with multiple installed versions, the version to keep.
         Defaults to the newest installed version per module.
     .PARAMETER SnapshotPath
-        Directory to write the pre-reset inventory snapshot to (HER-06).
+        Directory to write the pre-reset inventory snapshot to.
         Defaults to a timestamped file under $env:TEMP\PSFixer.
     .PARAMETER LogPath
-        File to append action log entries to (HER-08).
+        File to append action log entries to.
     .PARAMETER TargetEdition
         Which PowerShell edition(s) the Modules scope should clean up: 'PS7',
         'WindowsPowerShell', or 'Both'. If omitted, prompts interactively when

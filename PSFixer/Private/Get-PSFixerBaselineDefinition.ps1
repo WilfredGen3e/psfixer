@@ -1,7 +1,7 @@
 function Get-PSFixerBaselineDefinition {
     <#
     .SYNOPSIS
-        Loads a baseline definition (BAS-06: configurable per organization).
+        Loads a baseline definition, configurable per organization.
     .PARAMETER Path
         Path to a custom baseline JSON file. Defaults to the built-in baseline.
     #>

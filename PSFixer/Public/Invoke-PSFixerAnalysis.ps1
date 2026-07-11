@@ -2,28 +2,27 @@ function Invoke-PSFixerAnalysis {
     <#
     .SYNOPSIS
         Analyzes a PSFixer inventory and reports problems with severity and
-        recommended actions (§5.2).
+        recommended actions.
     .DESCRIPTION
-        Detects duplicate modules (ANA-01), multiple/conflicting versions
-        (ANA-02, ANA-04), legacy/unsupported modules (ANA-05), repository
-        misconfiguration (ANA-06), and outdated package providers (ANA-07).
-        Outdated-version checks against the gallery (ANA-03) only run with
-        -Online, since analysis must work offline (NFR-05).
+        Detects duplicate modules, multiple/conflicting versions, legacy/unsupported
+        modules, repository misconfiguration, and outdated package providers.
+        Outdated-version checks against the gallery only run with -Online,
+        since analysis must work offline otherwise.
     .PARAMETER Inventory
         A PSFixer.Inventory object, e.g. from Get-PSFixerInventory. If omitted,
         a fresh inventory is collected.
     .PARAMETER Online
-        Also check the gallery for newer versions of installed modules (ANA-03).
+        Also check the gallery for newer versions of installed modules.
         Requires internet connectivity.
     .PARAMETER NoReport
-        Skip writing the HTML report to ~\psfixerreports (INV-08). Findings are
+        Skip writing the HTML report to ~\psfixerreports. Findings are
         still returned to the pipeline as usual.
     .PARAMETER NoOpenReport
         Write the HTML report as usual but don't open it in the default browser.
         Has no effect when -NoReport is also specified.
     .PARAMETER IncludeUnmanaged
-        Also flag duplicate-location/multiple-version findings (ANA-01, ANA-02)
-        for modules that ship in-box with Windows and were never installed via
+        Also flag duplicate-location/multiple-version findings for modules
+        that ship in-box with Windows and were never installed via
         the package manager (e.g. the Pester bundled with Windows PowerShell,
         or PackageManagement itself). These can't be removed by
         Reset-PSFixerEnvironment anyway, so they're excluded by default.

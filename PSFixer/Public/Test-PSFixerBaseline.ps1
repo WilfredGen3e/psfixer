@@ -1,9 +1,9 @@
 function Test-PSFixerBaseline {
     <#
     .SYNOPSIS
-        Reports compliance against the PSFixer baseline without changing anything (BAS-05).
+        Reports compliance against the PSFixer baseline without changing anything.
     .PARAMETER Path
-        Path to a custom baseline JSON file (BAS-06). Defaults to the built-in baseline.
+        Path to a custom baseline JSON file. Defaults to the built-in baseline.
     .EXAMPLE
         Test-PSFixerBaseline
     #>

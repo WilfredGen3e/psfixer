@@ -1,10 +1,10 @@
 function Get-PSFixerLegacyModuleMap {
     <#
     .SYNOPSIS
-        Loads the legacy/unsupported module definitions used by ANA-05.
+        Loads the legacy/unsupported module definitions used by Invoke-PSFixerAnalysis.
     .DESCRIPTION
         Kept as external data (Data\LegacyModules.json) rather than hardcoded,
-        per PRD risk mitigation: "Legacy-detectielijst veroudert".
+        since the list of legacy modules changes over time.
     #>
     [CmdletBinding()]
     [OutputType([hashtable])]

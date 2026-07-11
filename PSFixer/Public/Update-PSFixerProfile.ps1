@@ -1,7 +1,7 @@
 function Update-PSFixerProfile {
     <#
     .SYNOPSIS
-        Updates all modules belonging to a named PSFixer profile (PRO-06).
+        Updates all modules belonging to a named PSFixer profile.
     .PARAMETER Name
         Name of the profile to update.
     .PARAMETER DefinitionPath

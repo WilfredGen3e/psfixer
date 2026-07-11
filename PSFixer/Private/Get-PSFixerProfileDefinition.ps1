@@ -1,7 +1,7 @@
 function Get-PSFixerProfileDefinition {
     <#
     .SYNOPSIS
-        Loads built-in and/or custom PSFixer module profiles (PRO-05).
+        Loads built-in and/or custom PSFixer module profiles.
     .PARAMETER Path
         Path to a custom profiles JSON file. Defaults to the built-in profiles.
         Entries in a custom file override built-in entries with the same name.

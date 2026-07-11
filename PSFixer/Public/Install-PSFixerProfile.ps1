@@ -1,12 +1,12 @@
 function Install-PSFixerProfile {
     <#
     .SYNOPSIS
-        Installs the modules for a named PSFixer profile (§5.5).
+        Installs the modules for a named PSFixer profile.
     .DESCRIPTION
         Installs every module listed in the profile definition, always in a
-        consistent scope (default: CurrentUser, PS7) (PRO-04). Built-in profiles
-        are M365Admin and AzureEngineer; custom profiles can be supplied via
-        -DefinitionPath (PRO-05).
+        consistent scope (default: CurrentUser, PS7). Built-in profiles are
+        M365Admin, AzureEngineer, IntuneAdmin, SecurityConsultant, and Helpdesk;
+        custom profiles can be supplied via -DefinitionPath.
     .PARAMETER Name
         Name of the profile to install.
     .PARAMETER Scope

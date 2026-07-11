@@ -12,4 +12,8 @@ foreach ($file in @($private) + @($public)) {
     }
 }
 
-Export-ModuleMember -Function $public.BaseName
+Set-Alias -Name psdiag -Value Test-PSFixer
+Set-Alias -Name psfix -Value Repair-PSFixer
+Set-Alias -Name pscat -Value Show-PSFixerCatalog
+
+Export-ModuleMember -Function $public.BaseName -Alias psdiag, psfix, pscat

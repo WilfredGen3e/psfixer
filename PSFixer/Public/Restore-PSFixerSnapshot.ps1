@@ -2,7 +2,7 @@ function Restore-PSFixerSnapshot {
     <#
     .SYNOPSIS
         Reinstalls module versions that a Reset-PSFixerEnvironment run removed,
-        using its pre-reset inventory snapshot (HER-06 rollback).
+        using its pre-reset inventory snapshot.
     .DESCRIPTION
         Compares a snapshot JSON file (written automatically by Reset-PSFixerEnvironment
         before it removes anything) against the modules currently installed, and
@@ -23,8 +23,7 @@ function Restore-PSFixerSnapshot {
 
     if (-not $SnapshotPath) {
         $snapshotDir = Join-Path -Path $env:TEMP -ChildPath 'PSFixer'
-        $latest = Get-ChildItem -Path $snapshotDir -Filter 'inventory-*.json' -ErrorAction SilentlyContinue |
-            Sort-Object -Property LastWriteTime -Descending | Select-Object -First 1
+        $latest = Get-PSFixerLatestSnapshot -SnapshotPath $snapshotDir
         if (-not $latest) {
             throw "Geen snapshot gevonden onder '$snapshotDir'. Geef -SnapshotPath expliciet op."
         }

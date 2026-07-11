@@ -1,7 +1,7 @@
 function New-PSFixerHtmlReport {
     <#
     .SYNOPSIS
-        Builds a self-contained HTML analysis report (INV-08 / §11 v1.x HTML dashboard).
+        Builds a self-contained HTML analysis report.
     .DESCRIPTION
         Returns the report as an HTML string; the caller decides where to write it.
         No external assets (fonts/scripts/images) so it opens standalone via file://.

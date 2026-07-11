@@ -1,7 +1,7 @@
 function Test-PSFixerIsAdmin {
     <#
     .SYNOPSIS
-        Returns whether the current session is elevated (NFR-04).
+        Returns whether the current session is elevated.
     #>
     [CmdletBinding()]
     [OutputType([bool])]

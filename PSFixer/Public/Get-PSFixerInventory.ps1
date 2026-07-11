@@ -1,11 +1,11 @@
 function Get-PSFixerInventory {
     <#
     .SYNOPSIS
-        Produces a full inventory of the local PowerShell environment (§5.1).
+        Produces a full inventory of the local PowerShell environment.
     .DESCRIPTION
         Collects installed PowerShell versions, modules, repositories, package
         providers, and the installed PowerShellGet/PSResourceGet versions.
-        Returns a single pipeline-friendly object (INV-08); pass it to
+        Returns a single pipeline-friendly object; pass it to
         Invoke-PSFixerAnalysis to detect problems.
     .EXAMPLE
         Get-PSFixerInventory | Format-List

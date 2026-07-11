@@ -1,15 +1,15 @@
 function Set-PSFixerBaseline {
     <#
     .SYNOPSIS
-        Applies the PSFixer baseline to the local environment (§5.4).
+        Applies the PSFixer baseline to the local environment.
     .DESCRIPTION
-        Registers/trusts PSGallery (BAS-02), ensures required package providers
-        are present (BAS-03), and applies recommended settings such as TLS and
-        PSResourceGet preference (BAS-04). Does not install PowerShell 7 itself
-        in v1 — see open question in PRD §10; reports non-compliance instead.
-        Idempotent (NFR-03): re-running has no effect once compliant.
+        Registers/trusts PSGallery, ensures required package providers
+        are present, and applies recommended settings such as TLS and
+        PSResourceGet preference. Does not install PowerShell 7 itself;
+        reports non-compliance instead. Idempotent: re-running has no
+        effect once compliant.
     .PARAMETER Path
-        Path to a custom baseline JSON file (BAS-06). Defaults to the built-in baseline.
+        Path to a custom baseline JSON file. Defaults to the built-in baseline.
     .EXAMPLE
         Set-PSFixerBaseline -WhatIf
     #>
@@ -21,7 +21,7 @@ function Set-PSFixerBaseline {
     $baseline = Get-PSFixerBaselineDefinition -Path $Path
 
     if ($PSVersionTable.PSVersion -lt [version]$baseline.MinimumPowerShellVersion) {
-        Write-Warning "Running PowerShell $($PSVersionTable.PSVersion), baseline requires >= $($baseline.MinimumPowerShellVersion). Install/upgrade PowerShell 7 manually, then re-run Set-PSFixerBaseline (BAS-01)."
+        Write-Warning "Running PowerShell $($PSVersionTable.PSVersion), baseline requires >= $($baseline.MinimumPowerShellVersion). Install/upgrade PowerShell 7 manually, then re-run Set-PSFixerBaseline."
     }
 
     foreach ($repo in $baseline.Repositories) {

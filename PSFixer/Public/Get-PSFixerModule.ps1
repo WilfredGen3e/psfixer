@@ -1,7 +1,7 @@
 function Get-PSFixerModule {
     <#
     .SYNOPSIS
-        Inventories installed PowerShell modules across all locations (INV-03, INV-04).
+        Inventories installed PowerShell modules across all locations.
     .DESCRIPTION
         Enumerates every module found on $env:PSModulePath (all locations, all scopes)
         and reports its name, version, path, and resolved scope label.

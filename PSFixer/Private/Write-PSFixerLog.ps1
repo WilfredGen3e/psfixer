@@ -1,7 +1,7 @@
 function Write-PSFixerLog {
     <#
     .SYNOPSIS
-        Writes an action-log entry (HER-08, NFR-09) and echoes it to the verbose stream.
+        Writes an action-log entry and echoes it to the verbose stream.
     .PARAMETER Path
         Log file to append to. If omitted, only writes to the verbose stream.
     #>

@@ -13,5 +13,33 @@
     "Modules": [
       { "Name": "Az", "MinimumVersion": null }
     ]
+  },
+  "IntuneAdmin": {
+    "Description": "Modules for Intune / endpoint device management.",
+    "Modules": [
+      { "Name": "Microsoft.Graph.Authentication", "MinimumVersion": null },
+      { "Name": "Microsoft.Graph.DeviceManagement", "MinimumVersion": null },
+      { "Name": "Microsoft.Graph.Groups", "MinimumVersion": null },
+      { "Name": "WindowsAutopilotIntune", "MinimumVersion": null }
+    ]
+  },
+  "SecurityConsultant": {
+    "Description": "Modules for Entra ID / Azure security assessments.",
+    "Modules": [
+      { "Name": "Microsoft.Graph.Authentication", "MinimumVersion": null },
+      { "Name": "Microsoft.Graph.Identity.SignIns", "MinimumVersion": null },
+      { "Name": "Microsoft.Graph.Security", "MinimumVersion": null },
+      { "Name": "Az.Accounts", "MinimumVersion": null },
+      { "Name": "Az.Security", "MinimumVersion": null }
+    ]
+  },
+  "Helpdesk": {
+    "Description": "Lightweight modules for day-to-day user/mailbox support tasks.",
+    "Modules": [
+      { "Name": "Microsoft.Graph.Authentication", "MinimumVersion": null },
+      { "Name": "Microsoft.Graph.Users", "MinimumVersion": null },
+      { "Name": "Microsoft.Graph.Users.Actions", "MinimumVersion": null },
+      { "Name": "ExchangeOnlineManagement", "MinimumVersion": null }
+    ]
   }
 }

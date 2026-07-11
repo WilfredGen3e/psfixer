@@ -1,7 +1,7 @@
 function Get-PSFixerModuleScope {
     <#
     .SYNOPSIS
-        Classifies a module path into a PSFixer scope label (INV-04).
+        Classifies a module path into a PSFixer scope label.
     #>
     [CmdletBinding()]
     [OutputType([string])]

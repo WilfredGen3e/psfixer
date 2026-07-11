@@ -1,7 +1,7 @@
 function Get-PSFixerRepository {
     <#
     .SYNOPSIS
-        Inventories registered PowerShell repositories and their trust status (INV-05).
+        Inventories registered PowerShell repositories and their trust status.
     .DESCRIPTION
         Reports repositories from both PowerShellGet (Get-PSRepository) and, when
         available, PSResourceGet (Get-PSResourceRepository).

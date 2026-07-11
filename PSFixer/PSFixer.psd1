@@ -10,6 +10,9 @@
     CompatiblePSEditions  = @('Desktop', 'Core')
 
     FunctionsToExport     = @(
+        'Test-PSFixer'
+        'Repair-PSFixer'
+        'Show-PSFixerCatalog'
         'Get-PSFixerInventory'
         'Get-PSFixerModule'
         'Get-PSFixerRepository'
@@ -26,7 +29,7 @@
     )
     CmdletsToExport       = @()
     VariablesToExport     = @()
-    AliasesToExport       = @()
+    AliasesToExport       = @('psdiag', 'psfix', 'pscat')
 
     PrivateData = @{
         PSData = @{
